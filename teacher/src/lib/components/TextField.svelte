@@ -2,7 +2,9 @@
 	interface Props {
 		label: string;
 		value: string;
-		type?: 'text' | 'email';
+		type?: 'text' | 'email' | 'number' | 'datetime-local';
+		min?: number;
+		max?: number;
 		placeholder?: string;
 		autocomplete?: 'email' | 'off';
 		error?: string | null;
@@ -13,6 +15,8 @@
 		label,
 		value = $bindable(),
 		type = 'text',
+		min,
+		max,
 		placeholder,
 		autocomplete = 'off',
 		error = null,
@@ -28,6 +32,8 @@
 	<input
 		id="{uid}-input"
 		{type}
+		{min}
+		{max}
 		{placeholder}
 		{autocomplete}
 		{required}
