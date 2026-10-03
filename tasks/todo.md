@@ -45,12 +45,12 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **10. Exam list and settings UI** `feature/exam-settings-ui`
   - Acceptance: exam table in class detail (T2); exam settings page (T3) with details, timing (Vienna time ↔ UTC), indentation checkbox, puzzle list, code box + copy, publish/unpublish.
   - Verify: manual; save → reload shows same values; timezone round-trip test
-- [ ] **11. Puzzle editor UI** `feature/puzzle-editor-ui`
+- [x] **11. Puzzle editor UI** `feature/puzzle-editor-ui`
   - Acceptance: editor (T4): task fields, solution lines with indent buttons, red herrings, add/remove/reorder lines, student preview shuffle, save.
   - Verify: manual; unit test for the reorder/indent helpers
 
 ### Checkpoint B (after 11)
-- [ ] A teacher can build and publish a full exam in the UI and see its code. Review with Michael (UX check against Figma).
+- [x] A teacher can build and publish a full exam in the UI and see its code. Review with Michael (UX check against Figma).
 
 ## Phase 5: Student backend
 - [ ] **12. Attempts: join, start, get** `feature/attempts-api`

@@ -41,3 +41,19 @@ export interface PuzzleSummary {
 	solutionLineCount: number;
 	redHerringCount: number;
 }
+
+export interface LineView {
+	id: string;
+	code: string;
+	indent: number;
+}
+
+export interface PuzzleView {
+	id: number;
+	examId: number;
+	position: number;
+	title: string;
+	description: string;
+	solution: LineView[];
+	redHerrings: LineView[];
+}
