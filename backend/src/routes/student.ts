@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
@@ -7,26 +7,40 @@ import { cleanName, createAttempt, findExamById, findExamByCode, getAttempt, sta
 import { examPhase } from '../lib/exam_phase.js';
 import { finaliseAttempt } from '../lib/finalise.js';
 import { parseJson } from '../lib/http.js';
-import { rateLimit } from '../lib/rate_limit.js';
+import { clientIp } from '../lib/http.js';
+import { recordFailure, tooManyFailures } from '../lib/rate_limit.js';
 import { buildAttemptView } from '../lib/student_view.js';
 import { saveState } from '../lib/save_state.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
 export const student = new Hono<{ Variables: StudentVariables }>();
 
+const lookupSchema = z.object({ code: z.string().max(40) });
+
 const joinSchema = z.object({
   code: z.string().max(40),
   name: z.string().transform(cleanName).pipe(z.string().min(1).max(60)),
 });
 
-student.post('/join', rateLimit('join', 10, 60_000), async (c) => {
-  const body = await parseJson(c, joinSchema);
-  const db = getDb();
-  const code = normaliseCode(body.code);
-  const exam = code ? await findExamByCode(db, code) : null;
-  // Unpublished exams look exactly like unknown codes.
-  if (!exam || !exam.publishedAt) throw new AppError(404, 'CODE_NOT_FOUND', 'We couldn’t find an exam with this code.');
+// Wrong codes are counted per client address; 300 in ten minutes is far beyond any typo storm
+// in a classroom but makes guessing codes pointless.
+const GUESS_LIMIT = 300;
+const GUESS_WINDOW_MS = 10 * 60_000;
 
+// Finds the exam behind a code and says why it cannot be joined right now.
+async function joinableExam(c: Context, code: string) {
+  const db = getDb();
+  const key = `guess:${clientIp(c)}`;
+  if (tooManyFailures(key, GUESS_LIMIT, GUESS_WINDOW_MS)) {
+    throw new AppError(429, 'RATE_LIMITED', 'Too many wrong codes. Please wait a few minutes.');
+  }
+  const normalised = normaliseCode(code);
+  const exam = normalised ? await findExamByCode(db, normalised) : null;
+  // Unpublished exams look exactly like unknown codes.
+  if (!exam || !exam.publishedAt) {
+    recordFailure(key);
+    throw new AppError(404, 'CODE_NOT_FOUND', 'We couldn’t find an exam with this code.');
+  }
   const phase = examPhase(exam, new Date());
   if (phase === 'scheduled') {
     throw new AppError(409, 'EXAM_NOT_OPEN', 'This exam has not started yet.', {
@@ -40,7 +54,27 @@ student.post('/join', rateLimit('join', 10, 60_000), async (c) => {
       closesAt: exam.closesAt!.toISOString(),
     });
   }
-  const token = await createAttempt(db, exam.id, body.name);
+  return exam;
+}
+
+// Step 1 of joining: "is this code good?" Shown to the student as the "exam found" card.
+student.post('/lookup', async (c) => {
+  const { code } = await parseJson(c, lookupSchema);
+  const exam = await joinableExam(c, code);
+  const puzzles = await getDb()<{ n: number }[]>`SELECT COUNT(*) AS n FROM puzzles WHERE exam_id = ${exam.id}`;
+  return c.json({
+    examTitle: exam.title,
+    className: exam.className,
+    timeLimitSeconds: exam.timeLimitSeconds,
+    puzzleCount: Number(puzzles[0]!.n),
+    closesAt: exam.closesAt!.toISOString(),
+  });
+});
+
+student.post('/join', async (c) => {
+  const body = await parseJson(c, joinSchema);
+  const exam = await joinableExam(c, body.code);
+  const token = await createAttempt(getDb(), exam.id, body.name);
   return c.json({ token }, 201);
 });
 

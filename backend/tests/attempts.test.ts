@@ -67,9 +67,46 @@ describe('join', () => {
     expect((await join(exam.code, 'x'.repeat(61))).status).toBe(400);
   });
 
-  it('limits guessing per client', async () => {
-    for (let i = 0; i < 10; i++) expect((await join('ZZZ-ZZZ', 'x')).status).toBe(404);
-    expect((await join('ZZZ-ZZZ', 'x')).status).toBe(429);
+  it('does not limit successful joins, so a whole class behind one school IP can join', async () => {
+    const exam = await seedExam(anna, classId);
+    for (let i = 0; i < 40; i++) expect((await join(exam.code, `Pupil ${i}`)).status).toBe(201);
+  });
+
+  it('stops clients that keep guessing wrong codes, but only after many tries', async () => {
+    for (let i = 0; i < 300; i++) expect((await join('ZZZ-ZZZ', 'x')).status).toBe(404);
+    const res = await join('ZZZ-ZZZ', 'x');
+    expect(res.status).toBe(429);
+    expect(await json(res)).toMatchObject({ error: 'RATE_LIMITED' });
+  });
+});
+
+describe('lookup', () => {
+  const lookup = (code: string) =>
+    app.request('/api/student/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+
+  it('returns what the "exam found" card needs, and nothing about the puzzles', async () => {
+    const exam = await seedExam(anna, classId, { timeLimitSeconds: 600 });
+    const res = await lookup(exam.code.toLowerCase());
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toMatchObject({ examTitle: 'Loops', className: '4AHIF', timeLimitSeconds: 600, puzzleCount: 2 });
+    expect(JSON.stringify(body)).not.toContain('total');
+  });
+
+  it('reports not found, not open and closed like join does', async () => {
+    const draft = await seedExam(anna, classId, { publish: false });
+    const later = await seedExam(anna, classId, { state: 'scheduled' });
+    const done = await seedExam(anna, classId, { state: 'over' });
+    expect((await lookup('ABC-234')).status).toBe(404);
+    expect((await lookup(draft.code)).status).toBe(404);
+    expect(await json(await lookup(later.code))).toMatchObject({ error: 'EXAM_NOT_OPEN', opensAt: expect.any(String) });
+    expect(await json(await lookup(done.code))).toMatchObject({ error: 'EXAM_CLOSED' });
+  });
+
+  it('shares the wrong-code limit with join', async () => {
+    for (let i = 0; i < 150; i++) await lookup('ZZZ-ZZZ');
+    for (let i = 0; i < 150; i++) await join('ZZZ-ZZZ', 'x');
+    expect((await lookup('ZZZ-ZZZ')).status).toBe(429);
   });
 });
 

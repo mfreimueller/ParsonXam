@@ -21,6 +21,7 @@ export function hit(key: string, max: number, windowMs: number, now = Date.now()
 
 export function resetRateLimits(): void {
   hits.clear();
+  failures.clear();
 }
 
 export function rateLimit(name: string, max: number, windowMs: number) {
@@ -30,4 +31,27 @@ export function rateLimit(name: string, max: number, windowMs: number) {
     }
     await next();
   };
+}
+
+// Counts only failures. A whole class shares one school IP, so successful joins must never be
+// limited, while someone guessing codes runs into the wall quickly.
+const failures = new Map<string, number[]>();
+
+export function tooManyFailures(key: string, max: number, windowMs: number, now = Date.now()): boolean {
+  const recent = (failures.get(key) ?? []).filter((t) => now - t < windowMs);
+  failures.set(key, recent);
+  return recent.length >= max;
+}
+
+export function recordFailure(key: string, now = Date.now()): void {
+  const list = failures.get(key) ?? [];
+  list.push(now);
+  failures.set(key, list);
+  if (failures.size > 10_000) {
+    for (const [k, v] of failures) if (v.every((t) => now - t >= 3_600_000)) failures.delete(k);
+  }
+}
+
+export function resetFailureLimits(): void {
+  failures.clear();
 }
