@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.svelte-kit
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+.scratch
+.idea
