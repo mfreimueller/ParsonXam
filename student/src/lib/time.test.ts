@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCountdown, formatDateTime, fromLocalInput, toLocalInput } from './time.js';
+import { formatCountdown, formatRemaining, formatDateTime, fromLocalInput, toLocalInput } from './time.js';
 
 describe('school time conversion', () => {
 	it('reads Vienna summer time (UTC+2)', () => {
@@ -50,5 +50,18 @@ describe('formatCountdown', () => {
 
 	it('handles long exams', () => {
 		expect(formatCountdown(125 * 60_000)).toBe('125:00');
+	});
+});
+
+describe('formatRemaining', () => {
+	it('uses the two largest units', () => {
+		expect(formatRemaining((2 * 3600 + 13 * 60 + 30) * 1000)).toBe('2 h 13 min');
+		expect(formatRemaining((12 * 60 + 4) * 1000)).toBe('12 min 04 s');
+		expect(formatRemaining(45_000)).toBe('45 s');
+	});
+
+	it('shows 0 s at or after the time', () => {
+		expect(formatRemaining(0)).toBe('0 s');
+		expect(formatRemaining(-3000)).toBe('0 s');
 	});
 });

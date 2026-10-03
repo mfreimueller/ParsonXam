@@ -74,7 +74,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **17. Exam screen** `feature/student-exam-ui`
   - Acceptance: S4/S4b: puzzle navigation, autosave after each move (debounced, retry on failure with visible state), countdown from `serverNow`/`deadlineAt`, confirm dialog, auto-submit when the countdown hits zero.
   - Verify: manual full run; kill network mid-exam → reconnect → state preserved
-- [ ] **18. Waiting and review screens** `feature/student-review-ui`
+- [x] **18. Waiting and review screens** `feature/student-review-ui`
   - Acceptance: S6 with live countdown to `closesAt`; S7 side by side, read-only, puzzle tabs; screen switches automatically when the exam ends.
   - Verify: manual with short exam times
 
