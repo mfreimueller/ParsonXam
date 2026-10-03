@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { findAttemptByToken, type AttemptRow } from '../lib/attempts.js';
+import { settleIfOverdue } from '../lib/finalise.js';
 import { bearerToken } from './teacher_auth.js';
 
 export interface StudentVariables {
@@ -13,6 +14,7 @@ export async function studentAuth(c: Context, next: Next) {
   if (!token) throw new AppError(401, 'UNAUTHORIZED', 'Please join the exam again.');
   const attempt = await findAttemptByToken(getDb(), token);
   if (!attempt) throw new AppError(401, 'UNAUTHORIZED', 'Please join the exam again.');
-  c.set('attempt', attempt);
+  // Time may have run out since the last request: settle it before any route looks at the attempt.
+  c.set('attempt', await settleIfOverdue(getDb(), attempt, new Date()));
   await next();
 }
