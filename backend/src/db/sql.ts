@@ -7,6 +7,11 @@ class SQLFragment {
   ) {}
 }
 
+// Inline SQL text without parameters. Only ever pass constants, never user input.
+export function raw(text: string): SQLFragment {
+  return new SQLFragment(text, []);
+}
+
 export function sql(value: unknown[] | Record<string, unknown>): SQLFragment {
   if (Array.isArray(value)) {
     const placeholders = value.map(() => '?').join(', ');

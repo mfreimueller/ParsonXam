@@ -61,6 +61,10 @@ classes.delete('/:id', async (c) => {
   const db = getDb();
   const id = parseId(c.req.param('id'));
   await requireOwner(db, c.get('teacher').id, id);
+  const exams = await db<{ n: number }[]>`SELECT COUNT(*) AS n FROM exams WHERE class_id = ${id}`;
+  if (Number(exams[0]?.n) > 0) {
+    throw new AppError(409, 'CLASS_NOT_EMPTY', 'Delete the exams of this class first.');
+  }
   await db`DELETE FROM classes WHERE id = ${id}`;
   return c.json({ ok: true });
 });

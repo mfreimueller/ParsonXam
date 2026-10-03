@@ -36,7 +36,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
   - Verify: manual with two seeded teachers; `npm run check`
 
 ## Phase 4: Exams and puzzles
-- [ ] **8. Exams API** `feature/exams-api`
+- [x] **8. Exams API** `feature/exams-api`
   - Acceptance: migration 0003 (`exams`, `puzzles`, `puzzle_lines`); exam CRUD, access code generation (unique, alphabet), publish/unpublish with validation, `regenerate-code`, `lib/exam_phase.ts`; list returns status and counts.
   - Verify: unit tests for phase + code; integration for validation errors; Files: `migrations/0003_*.ts`, `routes/exams.ts`, `lib/{access_code,exam_phase}.ts`
 - [ ] **9. Puzzles API** `feature/puzzles-api`
