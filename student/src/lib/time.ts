@@ -54,3 +54,11 @@ export function formatMinutes(seconds: number): string {
 	const m = Math.round(seconds / 60);
 	return `${m} min`;
 }
+
+/** Milliseconds -> "07:42". Rounds up, so the display only reaches 00:00 when time is really up. */
+export function formatCountdown(ms: number): string {
+	const total = Math.max(0, Math.ceil(ms / 1000));
+	const m = Math.floor(total / 60);
+	const sec = total % 60;
+	return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}

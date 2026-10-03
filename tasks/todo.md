@@ -71,7 +71,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **16. Drag-and-drop component** `feature/student-dnd`
   - Acceptance: pieces ⇄ solution list with touch, mouse and keyboard; indent buttons when enabled; emits placed order; no accidental scroll hijack on tablets.
   - Verify: component tests + manual on a real tablet; Files: `student/src/lib/Puzzle.svelte`, tests
-- [ ] **17. Exam screen** `feature/student-exam-ui`
+- [x] **17. Exam screen** `feature/student-exam-ui`
   - Acceptance: S4/S4b: puzzle navigation, autosave after each move (debounced, retry on failure with visible state), countdown from `serverNow`/`deadlineAt`, confirm dialog, auto-submit when the countdown hits zero.
   - Verify: manual full run; kill network mid-exam → reconnect → state preserved
 - [ ] **18. Waiting and review screens** `feature/student-review-ui`
