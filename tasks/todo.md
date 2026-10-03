@@ -39,7 +39,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **8. Exams API** `feature/exams-api`
   - Acceptance: migration 0003 (`exams`, `puzzles`, `puzzle_lines`); exam CRUD, access code generation (unique, alphabet), publish/unpublish with validation, `regenerate-code`, `lib/exam_phase.ts`; list returns status and counts.
   - Verify: unit tests for phase + code; integration for validation errors; Files: `migrations/0003_*.ts`, `routes/exams.ts`, `lib/{access_code,exam_phase}.ts`
-- [ ] **9. Puzzles API** `feature/puzzles-api`
+- [x] **9. Puzzles API** `feature/puzzles-api`
   - Acceptance: create/replace/delete puzzle with full line list (solution order + red herrings), reorder puzzles, `public_id` per line, structure locked once attempts exist.
   - Verify: tests incl. replace keeps ids stable where possible; Files: `routes/puzzles.ts`, tests
 - [ ] **10. Exam list and settings UI** `feature/exam-settings-ui`
@@ -54,10 +54,11 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 
 ## Phase 5: Student backend
 - [ ] **12. Attempts: join, start, get** `feature/attempts-api`
+  - Also: once an exam has attempts, puzzle create/replace/delete/reorder and `unpublish` return 409 `EXAM_LOCKED` (not possible earlier, no attempts table yet). Add `submissionCount` to the exam list.
   - Acceptance: migration 0004 (`attempts`, `attempt_puzzles`); `join` with all error codes and rate limit; `start` idempotent and sets deadline; `GET attempt` for `joined` and `in_progress` with seeded shuffle; student Bearer middleware.
   - Verify: tests for each error, duplicate name, shuffle stable per seed; Files: `migrations/0004_*.ts`, `routes/student.ts`, `middleware/student_auth.ts`, `lib/shuffle.ts`
 - [ ] **13. Scoring, autosave, submit, finalise, sweeper** `feature/scoring-and-submit`
-  - Acceptance: `lib/scoring.ts` per spec assumptions; autosave validation; manual submit; timeout finalisation lazily and via sweeper; idempotent.
+  - Acceptance: `lib/scoring.ts` per spec assumptions (lines compare by code + indent, so identical lines are interchangeable); autosave validation; manual submit; timeout finalisation lazily and via sweeper; idempotent.
   - Verify: exhaustive scoring unit tests; fake-clock tests for timeout; Files: `lib/{scoring,finalise,sweeper}.ts`, `routes/student.ts`
 - [ ] **14. Student view after submit and review** `feature/student-review-api`
   - Acceptance: `submitted` payload (score only while exam running; full review once over); single serializer `lib/student_view.ts`.

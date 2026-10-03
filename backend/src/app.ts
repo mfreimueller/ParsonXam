@@ -4,6 +4,7 @@ import { corsMiddleware } from './middleware/cors.js';
 import { health } from './routes/health.js';
 import { classes } from './routes/classes.js';
 import { classExams, exams } from './routes/exams.js';
+import { examPuzzles, puzzles } from './routes/puzzles.js';
 import { teacherAuthRoutes } from './routes/teacher_auth.js';
 
 export const app = new Hono();
@@ -15,6 +16,8 @@ app.route('/api/teacher', teacherAuthRoutes);
 app.route('/api/teacher/classes', classes);
 app.route('/api/teacher/classes', classExams);
 app.route('/api/teacher/exams', exams);
+app.route('/api/teacher/exams', examPuzzles);
+app.route('/api/teacher/puzzles', puzzles);
 
 app.notFound((c) => c.json({ error: 'NOT_FOUND', message: 'No such route.' }, 404));
 
