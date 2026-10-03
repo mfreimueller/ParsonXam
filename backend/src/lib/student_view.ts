@@ -2,9 +2,11 @@ import type { SQLInstance } from '../db/sql.js';
 import { findExamById, type AttemptRow } from './attempts.js';
 import { examPhase } from './exam_phase.js';
 import { puzzleSeed, shuffled } from './shuffle.js';
+import { puzzlePercent, round2 } from './scoring.js';
 
 // The ONLY place that turns puzzle data into something a student receives.
-// It never reads solution_position, so correct order and red herrings cannot leak from here.
+// While an exam is running it never reads solution_position, so the correct order and the red
+// herrings cannot leak. buildReview is the single exception and is used only once the exam is over.
 
 export interface Placed {
   pieceId: string;
@@ -42,13 +44,16 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
   if (!attempt.startedAt) return { status: 'joined' as const, ...base };
 
   if (attempt.submittedAt) {
-    return {
+    const submitted = {
       status: 'submitted' as const,
       ...base,
       submittedAt: attempt.submittedAt.toISOString(),
       submitReason: attempt.submitReason,
       scorePercent: Number(attempt.scorePercent),
     };
+    // Solutions are shown only after the teacher's "exam over" time.
+    if (base.exam.phase !== 'over') return submitted;
+    return { ...submitted, review: await buildReview(db, attempt, exam.studentsIndent, puzzleRows) };
   }
 
   const saved = await db<{ puzzleId: number; state: unknown }[]>`
@@ -83,4 +88,54 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
     deadlineAt: attempt.deadlineAt!.toISOString(),
     puzzles,
   };
+}
+
+interface ReviewLine {
+  code: string;
+  indent: number;
+}
+
+async function buildReview(
+  db: SQLInstance,
+  attempt: AttemptRow,
+  studentsIndent: boolean,
+  puzzleRows: { id: number; title: string; description: string }[]
+) {
+  const saved = await db<{ puzzleId: number; state: unknown }[]>`
+    SELECT puzzle_id AS puzzleId, state FROM attempt_puzzles WHERE attempt_id = ${attempt.id}
+  `;
+  const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, parseState(s.state)]));
+
+  const puzzles = [];
+  for (const p of puzzleRows) {
+    const lines = await db<{ publicId: string; code: string; indent: number; solutionPosition: number | null }[]>`
+      SELECT public_id AS publicId, code, indent, solution_position AS solutionPosition
+      FROM puzzle_lines WHERE puzzle_id = ${p.id} ORDER BY solution_position IS NULL, solution_position, id
+    `;
+    const byId = new Map(lines.map((l) => [l.publicId, l]));
+    const solution: ReviewLine[] = lines
+      .filter((l) => l.solutionPosition !== null)
+      .map((l) => ({ code: l.code, indent: Number(l.indent) }));
+    const redHerrings: ReviewLine[] = lines
+      .filter((l) => l.solutionPosition === null)
+      .map((l) => ({ code: l.code, indent: Number(l.indent) }));
+
+    const placed: ReviewLine[] = (stateByPuzzle.get(p.id) ?? []).flatMap((s) => {
+      const line = byId.get(s.pieceId);
+      return line ? [{ code: line.code, indent: studentsIndent ? s.indent : Number(line.indent) }] : [];
+    });
+    puzzles.push({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      scorePercent: round2(puzzlePercent(solution, placed)),
+      submission: placed.map((l, i) => ({
+        ...l,
+        correct: solution[i] !== undefined && solution[i]!.code === l.code && solution[i]!.indent === l.indent,
+      })),
+      solution,
+      redHerrings,
+    });
+  }
+  return { puzzles };
 }

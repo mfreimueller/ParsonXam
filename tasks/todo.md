@@ -60,7 +60,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **13. Scoring, autosave, submit, finalise, sweeper** `feature/scoring-and-submit`
   - Acceptance: `lib/scoring.ts` per spec assumptions (lines compare by code + indent, so identical lines are interchangeable); autosave validation; manual submit; timeout finalisation lazily and via sweeper; idempotent.
   - Verify: exhaustive scoring unit tests; fake-clock tests for timeout; Files: `lib/{scoring,finalise,sweeper}.ts`, `routes/student.ts`
-- [ ] **14. Student view after submit and review** `feature/student-review-api`
+- [x] **14. Student view after submit and review** `feature/student-review-api`
   - Acceptance: `submitted` payload (score only while exam running; full review once over); single serializer `lib/student_view.ts`.
   - Verify: **leak test** scans every student response before exam over for solution-only fields; Files: `lib/student_view.ts`, tests
 

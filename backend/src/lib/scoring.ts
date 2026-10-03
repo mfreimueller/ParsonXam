@@ -3,7 +3,7 @@ export interface Line {
   indent: number;
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
+export const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * Share of solution slots filled with the right line, 0..100.
@@ -11,17 +11,25 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  * position. Lines are compared by content, so identical lines (two `pass`, two `}`) are
  * interchangeable. Red herrings simply fail their slot; extra pieces past the end are ignored.
  */
-export function scorePuzzle(solution: Line[], placed: Line[]): number {
+export function puzzlePercent(solution: Line[], placed: Line[]): number {
   if (solution.length === 0) return 0;
   let right = 0;
   for (const [i, want] of solution.entries()) {
     const got = placed[i];
     if (got && got.code === want.code && got.indent === want.indent) right++;
   }
-  return round2((right / solution.length) * 100);
+  return (right / solution.length) * 100;
 }
 
-/** Mean of the puzzle scores. A puzzle that was never touched counts as 0. */
+/** The same, rounded to two decimals for storing and showing. */
+export function scorePuzzle(solution: Line[], placed: Line[]): number {
+  return round2(puzzlePercent(solution, placed));
+}
+
+/**
+ * Mean of the puzzle percentages. Pass the unrounded values (puzzlePercent) so rounding happens
+ * once, at the end. A puzzle that was never touched counts as 0.
+ */
 export function scoreExam(puzzleScores: number[]): number {
   if (puzzleScores.length === 0) return 0;
   return round2(puzzleScores.reduce((a, b) => a + b, 0) / puzzleScores.length);
