@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import '../app.css';
 	import Logo from '#lib/components/Logo.svelte';
 	import favicon from '#lib/assets/favicon.svg';
@@ -12,7 +13,9 @@
 </svelte:head>
 
 <div class="page">
-	<header><Logo /></header>
+	{#if page.route.id !== '/exam'}
+		<header><Logo /></header>
+	{/if}
 	{@render children()}
 </div>
 
