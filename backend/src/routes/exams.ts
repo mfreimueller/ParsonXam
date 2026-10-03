@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { generateAccessCode } from '../lib/access_code.js';
+import { examHasStartedAttempts } from '../lib/attempts.js';
 import { getExam, listExams, publishProblems, requireExamAccess } from '../lib/exams.js';
 import { parseJson } from '../lib/http.js';
 import { parseId, requireMember } from '../lib/membership.js';
@@ -145,6 +146,9 @@ exams.post('/:examId/unpublish', async (c) => {
   const db = getDb();
   const examId = parseId(c.req.param('examId'));
   await requireExamAccess(db, c.get('teacher').id, examId);
+  if (await examHasStartedAttempts(db, examId)) {
+    throw new AppError(409, 'EXAM_LOCKED', 'Students have already started this exam, so it can no longer be unpublished.');
+  }
   await db`UPDATE exams SET published_at = NULL WHERE id = ${examId}`;
   return c.json({ exam: await getExam(db, examId) });
 });
