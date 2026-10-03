@@ -12,5 +12,32 @@ export interface ClassView {
 	name: string;
 	term: string;
 	myRole: Role;
+	examCount: number;
 	members: Member[];
+}
+
+export type ExamStatus = 'draft' | 'scheduled' | 'live' | 'over';
+
+export interface ExamView {
+	id: number;
+	classId: number;
+	title: string;
+	instructions: string;
+	timeLimitSeconds: number;
+	opensAt: string | null;
+	closesAt: string | null;
+	studentsIndent: boolean;
+	accessCode: string;
+	status: ExamStatus;
+	publishedAt: string | null;
+	puzzleCount: number;
+	createdBy: { id: number; displayName: string } | null;
+}
+
+export interface PuzzleSummary {
+	id: number;
+	position: number;
+	title: string;
+	solutionLineCount: number;
+	redHerringCount: number;
 }

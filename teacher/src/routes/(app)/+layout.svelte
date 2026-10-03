@@ -31,7 +31,7 @@
 	<aside>
 		<Logo />
 		<nav aria-label="Main">
-			<a href="/classes" aria-current={page.url.pathname.startsWith('/classes') ? 'page' : undefined}>Classes</a>
+			<a href="/classes" aria-current={['/classes', '/exams', '/puzzles'].some((p) => page.url.pathname.startsWith(p)) ? 'page' : undefined}>Classes</a>
 		</nav>
 		<div class="grow"></div>
 		<div class="user">

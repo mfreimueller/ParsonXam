@@ -42,7 +42,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **9. Puzzles API** `feature/puzzles-api`
   - Acceptance: create/replace/delete puzzle with full line list (solution order + red herrings), reorder puzzles, `public_id` per line, structure locked once attempts exist.
   - Verify: tests incl. replace keeps ids stable where possible; Files: `routes/puzzles.ts`, tests
-- [ ] **10. Exam list and settings UI** `feature/exam-settings-ui`
+- [x] **10. Exam list and settings UI** `feature/exam-settings-ui`
   - Acceptance: exam table in class detail (T2); exam settings page (T3) with details, timing (Vienna time ↔ UTC), indentation checkbox, puzzle list, code box + copy, publish/unpublish.
   - Verify: manual; save → reload shows same values; timezone round-trip test
 - [ ] **11. Puzzle editor UI** `feature/puzzle-editor-ui`
