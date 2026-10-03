@@ -1,28 +1,30 @@
 # Task list
 
+Note: the sidebar only has "Classes" for now (the Figma sidebar also shows Exams and Settings, which have no pages in the spec).
+
 Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify = tests + `npm run lint` (backend) / `npm run check` (apps) + the manual check listed.
 
 ## Phase 1: Foundation
-- [ ] **1. Repo scaffold** `chore/scaffold`
+- [x] **1. Repo scaffold** `chore/scaffold`
   - Acceptance: root `README.md` (how to run each package), `.env.example` files, CI workflow running lint + test for changed packages.
   - Verify: workflow passes on a push; Files: `README.md`, `.github/workflows/ci.yml`, `backend/.env.example`
-- [ ] **2. Backend skeleton** `feature/backend-skeleton`
+- [x] **2. Backend skeleton** `feature/backend-skeleton`
   - Acceptance: `GET /api/health` returns ok and DB status; migrations run at startup; CORS allows the configured origins only; error format `{error, message}`; test DB helper creates/drops a throwaway database.
   - Verify: `npm test`, `npm run build && npm start`, `curl localhost:3000/api/health`; Files: `src/index.ts`, `src/db/{sql,connection,migrate}.ts`, `src/middleware/cors.ts`, `tests/health.test.ts`
-- [ ] **3. Auth tables and teacher seeding** `feature/teacher-tables`
+- [x] **3. Auth tables and teacher seeding** `feature/teacher-tables`
   - Acceptance: migration 0001 creates `teachers`, `login_tokens`, `teacher_sessions`; `npm run teacher:add -- <email> "<name>"` inserts a teacher.
   - Verify: migration test; run the script twice (second run reports "exists"); Files: `migrations/0001_*.ts`, `scripts/add_teacher.ts`
 
 ## Phase 2: Teacher login
-- [ ] **4. Magic-link auth API** `feature/teacher-auth-api`
+- [x] **4. Magic-link auth API** `feature/teacher-auth-api`
   - Acceptance: `request-link` always 202 and rate-limited; mail sent only for known teachers; `verify` is single use and 15 min; sessions are Bearer, 30 days; `logout`, `me`.
   - Verify: tests for unknown email, expired, reused, rate limit, session auth; Files: `routes/teacher_auth.ts`, `middleware/{teacher_auth,rate_limit}.ts`, `lib/{mailer,token,hash}.ts`
-- [ ] **5. Teacher app: scaffold and login** `feature/teacher-login-ui`
+- [x] **5. Teacher app: scaffold and login** `feature/teacher-login-ui`
   - Acceptance: SvelteKit static SPA; design tokens from Figma; login, check-inbox, link-expired and verify routes work against the real API; protected layout redirects to login; logout.
   - Verify: `npm run check`; manual: request link (printed in backend console), open it, land on an empty classes page; Files: `teacher/src/{app.css,lib/api.ts,lib/auth.ts,routes/**}`
 
 ### Checkpoint A (after 5)
-- [ ] Teacher can sign in locally end to end; all tests green; branch history is clean. Review with Michael.
+- [x] Teacher can sign in locally end to end; all tests green; branch history is clean. Review with Michael.
 
 ## Phase 3: Classes and teachers
 - [ ] **6. Classes and members API** `feature/classes-api`
