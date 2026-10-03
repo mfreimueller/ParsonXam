@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
+import { assertStructureEditable } from '../lib/attempts.js';
 import { requireExamAccess } from '../lib/exams.js';
 import { parseJson } from '../lib/http.js';
 import { parseId } from '../lib/membership.js';
@@ -52,6 +53,7 @@ examPuzzles.post('/:examId/puzzles', async (c) => {
   const db = getDb();
   const examId = parseId(c.req.param('examId'));
   await requireExamAccess(db, c.get('teacher').id, examId);
+  await assertStructureEditable(db, examId);
   const body = await parseJson(c, bodySchema);
 
   const puzzleId = await db.begin(async (tx) => {
@@ -72,6 +74,7 @@ examPuzzles.put('/:examId/puzzles/order', async (c) => {
   const db = getDb();
   const examId = parseId(c.req.param('examId'));
   await requireExamAccess(db, c.get('teacher').id, examId);
+  await assertStructureEditable(db, examId);
   const { puzzleIds } = await parseJson(c, orderSchema);
 
   const current = (await listPuzzles(db, examId)).map((p) => p.id).sort((a, b) => a - b);
@@ -98,7 +101,8 @@ puzzles.get('/:id', async (c) => {
 puzzles.put('/:id', async (c) => {
   const db = getDb();
   const id = parseId(c.req.param('id'));
-  await requirePuzzleAccess(db, c.get('teacher').id, id);
+  const existing = await requirePuzzleAccess(db, c.get('teacher').id, id);
+  await assertStructureEditable(db, existing.examId);
   const body = await parseJson(c, bodySchema);
   await db.begin(async (tx) => {
     await tx`UPDATE puzzles SET title = ${body.title}, description = ${body.description} WHERE id = ${id}`;
@@ -111,6 +115,7 @@ puzzles.delete('/:id', async (c) => {
   const db = getDb();
   const id = parseId(c.req.param('id'));
   const puzzle = await requirePuzzleAccess(db, c.get('teacher').id, id);
+  await assertStructureEditable(db, puzzle.examId);
   await db.begin(async (tx) => {
     await tx`DELETE FROM puzzles WHERE id = ${id}`;
     // Close the gap so positions stay 1..n.

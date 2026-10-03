@@ -18,6 +18,8 @@ interface ExamRow {
   createdById: number | null;
   createdByName: string | null;
   puzzleCount: number;
+  attemptCount: number;
+  submissionCount: number;
 }
 
 export interface ExamView {
@@ -33,6 +35,8 @@ export interface ExamView {
   status: ExamPhase;
   publishedAt: string | null;
   puzzleCount: number;
+  attemptCount: number;
+  submissionCount: number;
   createdBy: { id: number; displayName: string } | null;
 }
 
@@ -41,7 +45,9 @@ const SELECT_EXAM = `
          e.opens_at AS opensAt, e.closes_at AS closesAt, e.access_code AS accessCode,
          e.students_indent AS studentsIndent, e.published_at AS publishedAt,
          t.id AS createdById, t.display_name AS createdByName,
-         (SELECT COUNT(*) FROM puzzles p WHERE p.exam_id = e.id) AS puzzleCount
+         (SELECT COUNT(*) FROM puzzles p WHERE p.exam_id = e.id) AS puzzleCount,
+         (SELECT COUNT(*) FROM attempts a WHERE a.exam_id = e.id) AS attemptCount,
+         (SELECT COUNT(*) FROM attempts a WHERE a.exam_id = e.id AND a.submitted_at IS NOT NULL) AS submissionCount
   FROM exams e LEFT JOIN teachers t ON t.id = e.created_by`;
 
 function toView(r: ExamRow, now = new Date()): ExamView {
@@ -58,6 +64,8 @@ function toView(r: ExamRow, now = new Date()): ExamView {
     status: examPhase(r, now),
     publishedAt: r.publishedAt?.toISOString() ?? null,
     puzzleCount: Number(r.puzzleCount),
+    attemptCount: Number(r.attemptCount),
+    submissionCount: Number(r.submissionCount),
     createdBy: r.createdById ? { id: r.createdById, displayName: r.createdByName ?? '' } : null,
   };
 }

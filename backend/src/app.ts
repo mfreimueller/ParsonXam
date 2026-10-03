@@ -5,6 +5,7 @@ import { health } from './routes/health.js';
 import { classes } from './routes/classes.js';
 import { classExams, exams } from './routes/exams.js';
 import { examPuzzles, puzzles } from './routes/puzzles.js';
+import { student } from './routes/student.js';
 import { teacherAuthRoutes } from './routes/teacher_auth.js';
 
 export const app = new Hono();
@@ -12,6 +13,7 @@ export const app = new Hono();
 app.use('/api/*', corsMiddleware);
 
 app.route('/api/health', health);
+app.route('/api/student', student);
 app.route('/api/teacher', teacherAuthRoutes);
 app.route('/api/teacher/classes', classes);
 app.route('/api/teacher/classes', classExams);

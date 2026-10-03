@@ -53,7 +53,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] A teacher can build and publish a full exam in the UI and see its code. Review with Michael (UX check against Figma).
 
 ## Phase 5: Student backend
-- [ ] **12. Attempts: join, start, get** `feature/attempts-api`
+- [x] **12. Attempts: join, start, get** `feature/attempts-api`
   - Also: once an exam has attempts, puzzle create/replace/delete/reorder and `unpublish` return 409 `EXAM_LOCKED` (not possible earlier, no attempts table yet). Add `submissionCount` to the exam list.
   - Acceptance: migration 0004 (`attempts`, `attempt_puzzles`); `join` with all error codes and rate limit; `start` idempotent and sets deadline; `GET attempt` for `joined` and `in_progress` with seeded shuffle; student Bearer middleware.
   - Verify: tests for each error, duplicate name, shuffle stable per seed; Files: `migrations/0004_*.ts`, `routes/student.ts`, `middleware/student_auth.ts`, `lib/shuffle.ts`
