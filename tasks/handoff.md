@@ -8,8 +8,9 @@ Teacher app (SvelteKit SPA): login, classes + sharing, exam list, exam settings,
 Student app (SvelteKit SPA): code → name → ready → exam (drag and drop, autosave, countdown) → wait → review, plus not-found / not-open / closed screens. 19 unit tests.
 
 ## Next (see `tasks/todo.md`)
+- Task 21 was checked in desktop Chrome (tablet ≈ 800–820 px viewport; phone via a 390 px iframe) and found fine apart from the exam header, which is now two compact rows on phones. No student frames were found in the Figma file, so it was not compared against designs, and it is still untested on a real device.
 - Checkpoint D: Michael looks at the results UI (built, not yet seen in a browser) and grades a real mock exam.
-- 21 Responsive polish (tablet 820 / phone 390 per Figma), 22 Deployment, 23 Playwright e2e.
+- 22 Deployment, 23 Playwright e2e.
 
 ## Run locally
 ```
