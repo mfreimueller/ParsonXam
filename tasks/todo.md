@@ -68,7 +68,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **15. Student app: scaffold and join flow** `feature/student-join-ui`
   - Acceptance: SvelteKit static SPA with `/parsonxam` base and 404 fallback; screens S1, S1b, S2, S3, S8, S9; token in `localStorage`; resume on reload.
   - Verify: manual against local backend for each error code; `npm run check`
-- [ ] **16. Drag-and-drop component** `feature/student-dnd`
+- [x] **16. Drag-and-drop component** `feature/student-dnd`
   - Acceptance: pieces ⇄ solution list with touch, mouse and keyboard; indent buttons when enabled; emits placed order; no accidental scroll hijack on tablets.
   - Verify: component tests + manual on a real tablet; Files: `student/src/lib/Puzzle.svelte`, tests
 - [ ] **17. Exam screen** `feature/student-exam-ui`
