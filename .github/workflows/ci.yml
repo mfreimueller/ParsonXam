@@ -52,3 +52,23 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+
+  student:
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('student/package.json') != '' }}
+    defaults:
+      run:
+        working-directory: student
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+        env:
+          BASE_PATH: /parsonxam
