@@ -77,6 +77,7 @@
 					<th>Access code</th>
 					<th>Time limit</th>
 					<th>Puzzles</th>
+					<th>Submissions</th>
 					<th>Exam over</th>
 				</tr>
 			</thead>
@@ -88,6 +89,13 @@
 						<td><code>{exam.accessCode}</code></td>
 						<td>{formatMinutes(exam.timeLimitSeconds)}</td>
 						<td>{exam.puzzleCount}</td>
+						<td>
+							{#if exam.attemptCount > 0}
+								<a class="sub" href="/exams/{exam.id}/results">{exam.submissionCount} / {exam.attemptCount}</a>
+							{:else}
+								<span class="muted">–</span>
+							{/if}
+						</td>
 						<td class="muted">{formatDateTime(exam.closesAt)}</td>
 					</tr>
 				{/each}
@@ -161,6 +169,9 @@
 	}
 	td a:hover {
 		text-decoration: underline;
+	}
+	td a.sub {
+		color: var(--primary);
 	}
 	code {
 		padding: 4px 8px;

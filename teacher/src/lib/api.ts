@@ -47,3 +47,24 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
 	}
 	throw new ApiError(res.status, data.error ?? 'ERROR', data.message ?? 'Something went wrong.', data);
 }
+
+/** Fetches a file with the session token and hands it to the browser as a download. */
+export async function download(path: string, fallbackName: string): Promise<void> {
+	let res: Response;
+	try {
+		res = await fetch(`${API}${path}`, { headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {} });
+	} catch {
+		throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection and try again.');
+	}
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new ApiError(res.status, data.error ?? 'ERROR', data.message ?? 'Something went wrong.', data);
+	}
+	const name = /filename=([^;]+)/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? fallbackName;
+	const url = URL.createObjectURL(await res.blob());
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = name;
+	a.click();
+	URL.revokeObjectURL(url);
+}

@@ -13,6 +13,7 @@ export interface ClassView {
 	term: string;
 	myRole: Role;
 	examCount: number;
+	studentCount: number;
 	members: Member[];
 }
 
@@ -31,6 +32,8 @@ export interface ExamView {
 	status: ExamStatus;
 	publishedAt: string | null;
 	puzzleCount: number;
+	attemptCount: number;
+	submissionCount: number;
 	createdBy: { id: number; displayName: string } | null;
 }
 
@@ -56,4 +59,58 @@ export interface PuzzleView {
 	description: string;
 	solution: LineView[];
 	redHerrings: LineView[];
+}
+
+export type AttemptStatus = 'joined' | 'in_progress' | 'submitted';
+export type SubmitReason = 'manual' | 'timeout';
+
+export interface ResultRow {
+	id: number;
+	studentName: string;
+	status: AttemptStatus;
+	joinedAt: string;
+	startedAt: string | null;
+	submittedAt: string | null;
+	submitReason: SubmitReason | null;
+	scorePercent: number | null;
+	puzzles: { puzzleId: number; scorePercent: number | null }[];
+}
+
+export interface ResultsView {
+	puzzles: { id: number; title: string }[];
+	stats: {
+		joined: number;
+		inProgress: number;
+		submitted: number;
+		timedOut: number;
+		averagePercent: number | null;
+		highestPercent: number | null;
+		lowestPercent: number | null;
+	};
+	attempts: ResultRow[];
+}
+
+export interface ReviewLine {
+	code: string;
+	indent: number;
+}
+
+export interface AttemptDetail {
+	id: number;
+	examId: number;
+	studentName: string;
+	status: AttemptStatus;
+	startedAt: string | null;
+	submittedAt: string | null;
+	submitReason: SubmitReason | null;
+	scorePercent: number | null;
+	puzzles: {
+		id: number;
+		title: string;
+		description: string;
+		scorePercent: number;
+		submission: (ReviewLine & { correct: boolean })[];
+		solution: ReviewLine[];
+		redHerrings: ReviewLine[];
+	}[];
 }
