@@ -93,7 +93,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [ ] Feature complete locally. Michael grades a real mock exam.
 
 ## Phase 8: Ship
-- [ ] **21. Responsive polish** `feature/responsive`
+- [x] **21. Responsive polish** `feature/responsive`
   - Acceptance: tablet (820) and phone (390) layouts per Figma for all student screens; teacher app usable at 1024.
   - Verify: manual on devices
 - [ ] **22. Deployment** `chore/deploy`

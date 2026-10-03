@@ -141,8 +141,9 @@
 
 {#if loaded && puzzle}
 	<div class="bar">
-		<Logo />
+		<Logo compact />
 		<div class="right">
+			<div class="meta">
 			<div class="progress" aria-label="Puzzle {index + 1} of {puzzles.length}">
 				<span class="label">Puzzle {index + 1} of {puzzles.length}</span>
 				{#each puzzles as _, i}<span class="dot" class:now={i === index} class:done={i < index}></span>{/each}
@@ -150,6 +151,7 @@
 			<span class="save" class:offline={status === 'offline'} role="status">
 				{status === 'saved' ? 'Saved ✓' : status === 'saving' ? 'Saving…' : 'Offline – retrying…'}
 			</span>
+			</div>
 			<div class="timer" class:low role="timer" aria-label="Time left">
 				<span aria-hidden="true">⏱</span>
 				<strong>{formatCountdown(remaining)}</strong>
@@ -229,6 +231,9 @@
 		gap: 16px;
 		flex-wrap: wrap;
 		justify-content: flex-end;
+	}
+	.meta {
+		display: contents;
 	}
 	.progress {
 		display: flex;
@@ -351,6 +356,31 @@
 		}
 		.banner {
 			padding: 10px 16px;
+		}
+	}
+	@media (max-width: 600px) {
+		.bar {
+			flex-wrap: wrap;
+			row-gap: 4px;
+			padding: 8px 16px;
+		}
+		.right {
+			display: contents;
+		}
+		.meta {
+			display: flex;
+			order: 3;
+			flex-basis: 100%;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.label {
+			display: inline;
+		}
+		.timer {
+			margin-left: auto;
+			padding: 6px 12px;
+			font-size: 15px;
 		}
 	}
 </style>

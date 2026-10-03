@@ -1,10 +1,10 @@
 <script lang="ts">
-	let { inverse = false }: { inverse?: boolean } = $props();
+	let { inverse = false, compact = false }: { inverse?: boolean; compact?: boolean } = $props();
 </script>
 
 <div class="logo" class:inverse>
 	<span class="mark" aria-hidden="true">{'{ }'}</span>
-	<span class="name">ParsonXam</span>
+	<span class="name" class:compact>ParsonXam</span>
 </div>
 
 <style>
@@ -24,6 +24,11 @@
 		background: var(--primary);
 		color: var(--text-inverse);
 		font: 700 13px var(--font-mono);
+	}
+	@media (max-width: 600px) {
+		.name.compact {
+			display: none;
+		}
 	}
 	.inverse {
 		color: var(--text-inverse);
