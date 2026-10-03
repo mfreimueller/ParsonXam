@@ -65,7 +65,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
   - Verify: **leak test** scans every student response before exam over for solution-only fields; Files: `lib/student_view.ts`, tests
 
 ## Phase 6: Student app
-- [ ] **15. Student app: scaffold and join flow** `feature/student-join-ui`
+- [x] **15. Student app: scaffold and join flow** `feature/student-join-ui`
   - Acceptance: SvelteKit static SPA with `/parsonxam` base and 404 fallback; screens S1, S1b, S2, S3, S8, S9; token in `localStorage`; resume on reload.
   - Verify: manual against local backend for each error code; `npm run check`
 - [ ] **16. Drag-and-drop component** `feature/student-dnd`
