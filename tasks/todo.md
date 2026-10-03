@@ -85,7 +85,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **19. Results API and export** `feature/results-api`
   - Acceptance: results list, attempt detail, delete attempt, export JSON matching the spec shape.
   - Verify: tests; export scores equal list scores; Files: `routes/results.ts`, tests
-- [ ] **20. Results UI** `feature/results-ui`
+- [x] **20. Results UI** `feature/results-ui`
   - Acceptance: T5 results with stats, auto-submit marker, Export JSON; T6 submission detail; delete attempt.
   - Verify: manual with the Checkpoint C data
 

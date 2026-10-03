@@ -54,3 +54,18 @@ export function formatMinutes(seconds: number): string {
 	const m = Math.round(seconds / 60);
 	return `${m} min`;
 }
+
+/** "11:42" */
+export function formatClock(iso: string | null, timeZone = SCHOOL_TZ): string {
+	if (!iso) return '–';
+	return new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+}
+
+/** "8 min 12 s", "45 s" */
+export function formatDuration(fromIso: string | null, toIso: string | null): string {
+	if (!fromIso || !toIso) return '–';
+	const total = Math.max(0, Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 1000));
+	const m = Math.floor(total / 60);
+	const s = total % 60;
+	return m === 0 ? `${s} s` : `${m} min ${s} s`;
+}

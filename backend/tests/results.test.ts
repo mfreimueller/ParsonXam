@@ -98,7 +98,7 @@ describe('attempt detail and delete', () => {
     const id = (await json(await anna.call('GET', `/api/teacher/exams/${exam.examId}/results`))).attempts[0].id;
 
     const { attempt } = await json(await ben.call('GET', `/api/teacher/attempts/${id}`));
-    expect(attempt).toMatchObject({ studentName: 'Zoe', status: 'submitted', scorePercent: 50 });
+    expect(attempt).toMatchObject({ examId: exam.examId, studentName: 'Zoe', status: 'submitted', scorePercent: 50 });
     expect(attempt.puzzles).toHaveLength(2);
     const sum = attempt.puzzles[0];
     expect(sum.scorePercent).toBe(100);

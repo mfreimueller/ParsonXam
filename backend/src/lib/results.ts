@@ -74,6 +74,7 @@ export async function buildAttemptDetail(db: SQLInstance, attempt: AttemptRow, s
   const { puzzles: review } = await buildReview(db, attempt, studentsIndent, puzzles);
   return {
     id: attempt.id,
+    examId: attempt.examId,
     studentName: attempt.studentName,
     status: statusOf(attempt),
     joinedAt: attempt.joinedAt.toISOString(),

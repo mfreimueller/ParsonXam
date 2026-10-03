@@ -188,6 +188,7 @@
 	]}
 >
 	{#snippet actions()}
+		{#if isPublished}<Button variant="secondary" href="/exams/{exam.id}/results">Results</Button>{/if}
 		<Button variant="secondary" disabled={!dirty} loading={busy} onclick={onSave}>Save</Button>
 		{#if isPublished}
 			<Button variant="secondary" disabled={busy} onclick={unpublish}>Unpublish</Button>

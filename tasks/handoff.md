@@ -4,11 +4,11 @@ Last updated after task 19 (tasks 1–19 merged into `main`, working tree clean)
 
 ## Done
 Backend (Hono + MySQL/MariaDB): teacher passwordless login, classes with owner/member teachers, exams, puzzles, student join/lookup/start/autosave/submit, scoring, timeout settling (lazy + 30 s sweeper), review after exam over. 141 tests (results routes: `GET /exams/:id/results`, `GET /exams/:id/export`, `GET|DELETE /attempts/:id`; class cards carry `studentCount`).
-Teacher app (SvelteKit SPA): login, classes + sharing, exam list, exam settings, puzzle editor (paste-to-split). 12 unit tests.
+Teacher app (SvelteKit SPA): login, classes + sharing, exam list, exam settings, puzzle editor (paste-to-split), results table + stats + Export JSON (`/exams/[id]/results`), submission detail with prev/next and delete (`/attempts/[id]`). 15 unit tests.
 Student app (SvelteKit SPA): code → name → ready → exam (drag and drop, autosave, countdown) → wait → review, plus not-found / not-open / closed screens. 19 unit tests.
 
 ## Next (see `tasks/todo.md`)
-- 20 Results UI (Figma T5/T6): stats, table with "time ran out" marker, Export JSON button, submission detail, delete attempt. Add Submissions column to the exam table in class detail.
+- Checkpoint D: Michael looks at the results UI (built, not yet seen in a browser) and grades a real mock exam.
 - 21 Responsive polish (tablet 820 / phone 390 per Figma), 22 Deployment, 23 Playwright e2e.
 
 ## Run locally
