@@ -5,9 +5,11 @@ import { AppError } from '../errors.js';
 import { normaliseCode } from '../lib/access_code.js';
 import { cleanName, createAttempt, findExamById, findExamByCode, getAttempt, startAttempt } from '../lib/attempts.js';
 import { examPhase } from '../lib/exam_phase.js';
+import { finaliseAttempt } from '../lib/finalise.js';
 import { parseJson } from '../lib/http.js';
 import { rateLimit } from '../lib/rate_limit.js';
 import { buildAttemptView } from '../lib/student_view.js';
+import { saveState } from '../lib/save_state.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
 export const student = new Hono<{ Variables: StudentVariables }>();
@@ -66,4 +68,29 @@ student.post('/start', studentAuth, async (c) => {
     await startAttempt(db, attempt, exam, now);
   }
   return c.json(await buildAttemptView(db, await getAttempt(db, attempt.id), now));
+});
+
+const stateSchema = z.object({
+  placed: z
+    .array(z.object({ pieceId: z.string().max(40), indent: z.number().int().min(0).max(6).default(0) }))
+    .max(60),
+});
+
+student.put('/puzzles/:id/state', studentAuth, async (c) => {
+  const body = await parseJson(c, stateSchema);
+  const savedAt = await saveState(getDb(), c.get('attempt'), Number(c.req.param('id')), body.placed, new Date());
+  return c.json({ ok: true, savedAt: savedAt.toISOString() });
+});
+
+student.post('/submit', studentAuth, async (c) => {
+  const db = getDb();
+  let attempt = c.get('attempt');
+  if (!attempt.startedAt) throw new AppError(409, 'NOT_STARTED', 'Start the exam first.');
+  if (!attempt.submittedAt) attempt = await finaliseAttempt(db, attempt.id, 'manual', new Date());
+  const exam = await findExamById(db, attempt.examId);
+  return c.json({
+    scorePercent: Number(attempt.scorePercent),
+    reason: attempt.submitReason,
+    closesAt: exam.closesAt?.toISOString() ?? null,
+  });
 });

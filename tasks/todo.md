@@ -57,7 +57,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
   - Also: once an exam has attempts, puzzle create/replace/delete/reorder and `unpublish` return 409 `EXAM_LOCKED` (not possible earlier, no attempts table yet). Add `submissionCount` to the exam list.
   - Acceptance: migration 0004 (`attempts`, `attempt_puzzles`); `join` with all error codes and rate limit; `start` idempotent and sets deadline; `GET attempt` for `joined` and `in_progress` with seeded shuffle; student Bearer middleware.
   - Verify: tests for each error, duplicate name, shuffle stable per seed; Files: `migrations/0004_*.ts`, `routes/student.ts`, `middleware/student_auth.ts`, `lib/shuffle.ts`
-- [ ] **13. Scoring, autosave, submit, finalise, sweeper** `feature/scoring-and-submit`
+- [x] **13. Scoring, autosave, submit, finalise, sweeper** `feature/scoring-and-submit`
   - Acceptance: `lib/scoring.ts` per spec assumptions (lines compare by code + indent, so identical lines are interchangeable); autosave validation; manual submit; timeout finalisation lazily and via sweeper; idempotent.
   - Verify: exhaustive scoring unit tests; fake-clock tests for timeout; Files: `lib/{scoring,finalise,sweeper}.ts`, `routes/student.ts`
 - [ ] **14. Student view after submit and review** `feature/student-review-api`

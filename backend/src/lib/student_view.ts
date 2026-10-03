@@ -42,7 +42,13 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
   if (!attempt.startedAt) return { status: 'joined' as const, ...base };
 
   if (attempt.submittedAt) {
-    throw new Error('submitted view is built in buildSubmittedView');
+    return {
+      status: 'submitted' as const,
+      ...base,
+      submittedAt: attempt.submittedAt.toISOString(),
+      submitReason: attempt.submitReason,
+      scorePercent: Number(attempt.scorePercent),
+    };
   }
 
   const saved = await db<{ puzzleId: number; state: unknown }[]>`
