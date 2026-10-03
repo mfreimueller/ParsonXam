@@ -1,6 +1,6 @@
 import type { SQLInstance } from '../db/sql.js';
 import { getAttempt, type AttemptRow } from './attempts.js';
-import { scoreExam, scorePuzzle } from './scoring.js';
+import { puzzlePercent, round2, scoreExam } from './scoring.js';
 import { parseState } from './student_view.js';
 
 export type SubmitReason = 'manual' | 'timeout';
@@ -60,9 +60,9 @@ export async function finaliseAttempt(
         // With pre-set indentation the piece's own indent counts, whatever the client sent.
         return [{ code: line.code, indent: studentsIndent ? s.indent : Number(line.indent) }];
       });
-      const score = scorePuzzle(solution, placed);
-      scores.push(score);
-      await tx`UPDATE attempt_puzzles SET score_percent = ${score} WHERE attempt_id = ${attemptId} AND puzzle_id = ${p.id}`;
+      const exact = puzzlePercent(solution, placed);
+      scores.push(exact);
+      await tx`UPDATE attempt_puzzles SET score_percent = ${round2(exact)} WHERE attempt_id = ${attemptId} AND puzzle_id = ${p.id}`;
     }
 
     const at = reason === 'timeout' && row.deadlineAt ? row.deadlineAt : now;

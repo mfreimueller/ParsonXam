@@ -58,6 +58,11 @@ describe('scoreExam', () => {
     expect(scoreExam([100, 0])).toBe(50);
   });
 
+  it('rounds once at the end, not per puzzle', () => {
+    // 100 and 2/3: rounding the second first would give 83.34
+    expect(scoreExam([100, (2 / 3) * 100])).toBe(83.33);
+  });
+
   it('handles no puzzles', () => {
     expect(scoreExam([])).toBe(0);
   });
