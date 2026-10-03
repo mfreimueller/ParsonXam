@@ -95,7 +95,7 @@ interface ReviewLine {
   indent: number;
 }
 
-async function buildReview(
+export async function buildReview(
   db: SQLInstance,
   attempt: AttemptRow,
   studentsIndent: boolean,

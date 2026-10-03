@@ -79,10 +79,10 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
   - Verify: manual with short exam times
 
 ### Checkpoint C (after 18)
-- [ ] Full flow: teacher publishes, 3 browser students take it (one lets time run out), all see the right screens. Review with Michael.
+- [x] Full flow: teacher publishes, 3 browser students take it (one lets time run out), all see the right screens. Review with Michael.
 
 ## Phase 7: Results and export
-- [ ] **19. Results API and export** `feature/results-api`
+- [x] **19. Results API and export** `feature/results-api`
   - Acceptance: results list, attempt detail, delete attempt, export JSON matching the spec shape.
   - Verify: tests; export scores equal list scores; Files: `routes/results.ts`, tests
 - [ ] **20. Results UI** `feature/results-ui`
