@@ -15,7 +15,7 @@ export function config() {
       port: Number(env.SMTP_PORT ?? 587),
       user: env.SMTP_USER ?? '',
       pass: env.SMTP_PASS ?? '',
-      from: env.SMTP_FROM ?? 'noreply@parsonxam.mfreimueller.com',
+      from: env.SMTP_FROM ?? 'noreply@localhost',
     },
   };
 }

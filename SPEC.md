@@ -32,7 +32,7 @@ Success looks like: a teacher can build an exam in minutes, hand out a code, and
 | Student app | Svelte 5 + SvelteKit (`adapter-static`, SPA, `ssr = false`), TypeScript, `svelte-dnd-action` (touch + keyboard) |
 | Teacher app | Same stack as the student app |
 | Tests | `vitest` (backend against a throwaway MySQL database), `svelte-check`, Playwright for a few end-to-end flows |
-| Hosting | API + teacher app: `mf9501@sabic.uberspace.de`, domain `parsonxam.mfreimueller.com`. Student app: GitHub Pages at `https://mfreimueller.github.io/parsonxam/` |
+| Hosting | API + teacher app: the Uberspace account (`<user>@<host>`), domain `parsonxam.mfreimueller.com`. Student app: GitHub Pages at `https://mfreimueller.github.io/parsonxam/` |
 
 ## Commands
 
@@ -50,8 +50,8 @@ npm run build        # vite build -> build/
 npm run check        # svelte-check --tsconfig ./tsconfig.json
 
 # repo root
-scripts/deploy-backend.sh mf9501@sabic.uberspace.de   # tsc, rsync dist + package files, npm i --omit=dev, supervisorctl restart parsonxam-backend
-scripts/deploy-teacher.sh mf9501@sabic.uberspace.de   # build teacher, rsync build/ to the domain's docroot
+scripts/deploy-backend.sh <user>@<host>   # tsc, rsync dist + package files, npm i --omit=dev, supervisorctl restart parsonxam-backend
+scripts/deploy-teacher.sh <user>@<host>   # build teacher, rsync build/ to the domain's docroot
 # student app: GitHub Action on push to main builds student/ and publishes to Pages
 ```
 
@@ -180,13 +180,14 @@ Only the teacher routes and the "exam over" branch ever return `solution_positio
 - **Tokens**: random 32 bytes, only the SHA-256 hash is stored (moku's `token.ts` / `hash.ts`). The student token is kept in `localStorage` so a tab close or tablet reboot mid-exam does not lose the attempt. It is cleared when the exam is over and the review has been shown.
 - **Validation**: every body parsed with `zod`; autosave checks piece ids belong to the puzzle, no duplicates, `indent` 0–6.
 - **Rate limiting**: in-memory (one Node process); client IP from `X-Forwarded-For` as set by Uberspace's proxy.
-- **Mail**: `nodemailer` over SMTP with an Uberspace mailbox; config through `SMTP_*` env vars (`SMTP_FROM=noreply@parsonxam.mfreimueller.com`; create the mailbox with `uberspace mail user add noreply` and make sure the domain is added to Uberspace mail). The link email is plain text plus HTML, subject "Your ParsonXam sign-in link".
+- **Mail**: `nodemailer` over SMTP with an Uberspace mailbox; config through `SMTP_*` env vars (`SMTP_FROM=noreply@mfreimueller.com`; create the mailbox with `uberspace mail user add noreply` and make sure the domain is added to Uberspace mail). The link email is plain text plus HTML, subject "Your ParsonXam sign-in link".
 - **Logging**: one line per request (method, path, status, ms), no tokens or student answers.
 
 ## Deployment
 
 - `.env` on the server (never committed): `PORT=3000`, `DATABASE_URL`, `PUBLIC_TEACHER_URL=https://parsonxam.mfreimueller.com`, `ALLOWED_ORIGINS`, `SMTP_*`.
-- Backend: supervisord service `parsonxam-backend` running `node dist/index.js`; `uberspace web backend set /api --http --port 3000`.
+- Domain names below are the author's own. Domain, sender address and server login are all configurable; see `docs/deployment.md` (the server login never appears in the repo).
+- Backend: supervisord service `parsonxam-backend` running `node dist/index.js`; `uberspace web backend set parsonxam.mfreimueller.com/api --http --port 3000`.
 - Teacher app: static files in the docroot for `parsonxam.mfreimueller.com` with an `.htaccess` that rewrites unknown paths to `index.html`.
 - Domain: add with `uberspace web domain add parsonxam.mfreimueller.com` and point DNS at the host.
 - Student app: `VITE_API_URL=https://parsonxam.mfreimueller.com/api`, `paths.base = '/parsonxam'`, `404.html` copy of `index.html` for deep links on GitHub Pages.
@@ -242,7 +243,7 @@ Conventions: `snake_case` columns, `camelCase` in TypeScript and JSON, error cod
 
 ## Decisions taken
 
-- Sign-in emails are sent from `noreply@parsonxam.mfreimueller.com` (the Uberspace mailbox still has to be created, see Deployment).
+- Sign-in emails are sent from `noreply@mfreimueller.com` (the Uberspace mailbox still has to be created, see Deployment).
 - Duplicate student names in one exam are rejected.
 - A student who enters the code before `opens_at` sees an "exam hasn't started yet" screen with the opening time (Figma frame `S9`); `EXAM_NOT_OPEN` carries `opensAt`.
 - Scoring stays strict (exact position), as approved.

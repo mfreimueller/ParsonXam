@@ -10,9 +10,9 @@ Parsons-puzzle revision exams. Teachers build exams, students solve them by drag
 
 | Folder | What | Hosted on |
 |---|---|---|
-| `backend/` | Hono API + MySQL | Uberspace (`parsonxam.mfreimueller.com/api`) |
-| `teacher/` | Teacher SPA | Uberspace (`parsonxam.mfreimueller.com`) |
-| `student/` | Student SPA | GitHub Pages (`mfreimueller.github.io/parsonxam`) |
+| `backend/` | Hono API + MySQL | Uberspace or similar (`<your domain>/api`) |
+| `teacher/` | Teacher SPA | Uberspace or similar (`<your domain>`) |
+| `student/` | Student SPA | GitHub Pages (`<owner>.github.io/<repository>`) |
 
 ## Local development
 
@@ -24,6 +24,10 @@ npm install
 npm run dev                     # API on :3000
 npm test                        # needs the database above
 ```
+
+## Deployment
+
+See `docs/deployment.md`. Server login, domain and sender address are configuration (`.deploy.env`, `backend/.env`, a GitHub variable), never part of the code.
 
 ## Workflow
 

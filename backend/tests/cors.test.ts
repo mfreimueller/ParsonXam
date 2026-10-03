@@ -5,7 +5,7 @@ import { useTestDb } from './helpers.js';
 useTestDb();
 
 beforeAll(() => {
-  process.env.ALLOWED_ORIGINS = 'https://mfreimueller.github.io,http://localhost:5173';
+  process.env.ALLOWED_ORIGINS = 'https://example.github.io,http://localhost:5173';
 });
 
 describe('CORS', () => {
@@ -13,12 +13,12 @@ describe('CORS', () => {
     const res = await app.request('/api/health', {
       method: 'OPTIONS',
       headers: {
-        Origin: 'https://mfreimueller.github.io',
+        Origin: 'https://example.github.io',
         'Access-Control-Request-Method': 'POST',
         'Access-Control-Request-Headers': 'authorization,content-type',
       },
     });
-    expect(res.headers.get('access-control-allow-origin')).toBe('https://mfreimueller.github.io');
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://example.github.io');
     expect(res.headers.get('access-control-allow-headers')?.toLowerCase()).toContain('authorization');
   });
 

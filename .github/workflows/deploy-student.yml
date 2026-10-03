@@ -1,0 +1,56 @@
+name: Deploy student app
+
+# Publishes student/ to GitHub Pages at https://<owner>.github.io/<repository>/
+# One-time setup (see docs/deployment.md):
+#   Settings -> Pages -> Source: "GitHub Actions"
+#   Settings -> Secrets and variables -> Actions -> Variables: API_URL = https://<your domain>/api
+on:
+  push:
+    branches: [main]
+    paths: ['student/**', '.github/workflows/deploy-student.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: student
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: student/package-lock.json
+      - name: Require the API_URL repository variable
+        run: test -n "${{ vars.API_URL }}" || { echo "Set the API_URL repository variable (Settings -> Secrets and variables -> Actions -> Variables)."; exit 1; }
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+          VITE_API_URL: ${{ vars.API_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: student/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

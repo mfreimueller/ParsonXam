@@ -96,7 +96,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] **21. Responsive polish** `feature/responsive`
   - Acceptance: tablet (820) and phone (390) layouts per Figma for all student screens; teacher app usable at 1024.
   - Verify: manual on devices
-- [ ] **22. Deployment** `chore/deploy`
+- [x] **22. Deployment (written, not yet run on the server)** `chore/deploy`
   - Acceptance: `scripts/deploy-backend.sh`, `deploy-teacher.sh`, supervisord service, `uberspace web backend` + domain, mailbox, `.htaccess`, GitHub Pages workflow; `docs/deployment.md`.
   - Verify: `curl https://parsonxam.mfreimueller.com/api/health`; real login mail arrives; CORS from `mfreimueller.github.io` works
 - [ ] **23. End-to-end tests** `test/e2e`
