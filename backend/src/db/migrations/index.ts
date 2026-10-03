@@ -1,4 +1,5 @@
 import { MIGRATION_0001_TEACHERS_AND_AUTH } from './0001_teachers_and_auth.js';
+import { MIGRATION_0002_CLASSES_AND_MEMBERS } from './0002_classes_and_members.js';
 
 export interface Migration {
   version: number;
@@ -6,4 +7,7 @@ export interface Migration {
   statements: string[];
 }
 
-export const MIGRATIONS: Migration[] = [MIGRATION_0001_TEACHERS_AND_AUTH];
+export const MIGRATIONS: Migration[] = [
+  MIGRATION_0001_TEACHERS_AND_AUTH,
+  MIGRATION_0002_CLASSES_AND_MEMBERS,
+];

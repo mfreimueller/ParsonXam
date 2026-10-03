@@ -27,9 +27,10 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 - [x] Teacher can sign in locally end to end; all tests green; branch history is clean. Review with Michael.
 
 ## Phase 3: Classes and teachers
-- [ ] **6. Classes and members API** `feature/classes-api`
+- [x] **6. Classes and members API** `feature/classes-api`
   - Acceptance: spec routes for classes and members; owner/member rules; non-members get 404; `GET /classes` returns `myRole` and member initials.
   - Verify: tests incl. removed-member loses access, owner cannot leave; Files: `migrations/0002_*.ts`, `routes/classes.ts`, `lib/membership.ts`, tests
+  - Follow-ups: `examCount` and `studentCount` on class cards are added in task 8 / 12 (tables do not exist yet); task 8 must also make `DELETE class` refuse while exams exist.
 - [ ] **7. Classes UI** `feature/classes-ui`
   - Acceptance: classes grid (Figma T1) incl. shared info and create dialog; class detail shell (T2) with Teachers button and dialog (T2b); owner-only controls hidden for members.
   - Verify: manual with two seeded teachers; `npm run check`
