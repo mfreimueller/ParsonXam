@@ -13,6 +13,7 @@ export interface ClassView {
   name: string;
   term: string;
   myRole: Role;
+  examCount: number;
   members: MemberView[];
 }
 
@@ -39,15 +40,16 @@ export async function listMembers(db: SQLInstance, classId: number): Promise<Mem
 
 async function attach(
   db: SQLInstance,
-  rows: { id: number; name: string; term: string; myRole: Role }[]
+  rows: { id: number; name: string; term: string; myRole: Role; examCount: number }[]
 ): Promise<ClassView[]> {
   const members = await membersByClass(db, rows.map((r) => r.id));
-  return rows.map((r) => ({ ...r, members: members.get(r.id) ?? [] }));
+  return rows.map((r) => ({ ...r, examCount: Number(r.examCount), members: members.get(r.id) ?? [] }));
 }
 
 export async function classesForTeacher(db: SQLInstance, teacherId: number): Promise<ClassView[]> {
-  const rows = await db<{ id: number; name: string; term: string; myRole: Role }[]>`
-    SELECT c.id, c.name, c.term, m.role AS myRole
+  const rows = await db<{ id: number; name: string; term: string; myRole: Role; examCount: number }[]>`
+    SELECT c.id, c.name, c.term, m.role AS myRole,
+           (SELECT COUNT(*) FROM exams e WHERE e.class_id = c.id) AS examCount
     FROM classes c JOIN class_members m ON m.class_id = c.id
     WHERE m.teacher_id = ${teacherId}
     ORDER BY c.name
@@ -57,8 +59,9 @@ export async function classesForTeacher(db: SQLInstance, teacherId: number): Pro
 
 // Caller has already checked membership.
 export async function classForTeacher(db: SQLInstance, teacherId: number, classId: number): Promise<ClassView> {
-  const rows = await db<{ id: number; name: string; term: string; myRole: Role }[]>`
-    SELECT c.id, c.name, c.term, m.role AS myRole
+  const rows = await db<{ id: number; name: string; term: string; myRole: Role; examCount: number }[]>`
+    SELECT c.id, c.name, c.term, m.role AS myRole,
+           (SELECT COUNT(*) FROM exams e WHERE e.class_id = c.id) AS examCount
     FROM classes c JOIN class_members m ON m.class_id = c.id
     WHERE m.teacher_id = ${teacherId} AND c.id = ${classId}
   `;

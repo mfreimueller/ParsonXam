@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
-import type { ZodType } from 'zod';
+import type { ZodType, ZodTypeDef } from 'zod';
 import { AppError } from '../errors.js';
 
-export async function parseJson<T>(c: Context, schema: ZodType<T>): Promise<T> {
+export async function parseJson<T>(c: Context, schema: ZodType<T, ZodTypeDef, unknown>): Promise<T> {
   let raw: unknown;
   try {
     raw = await c.req.json();
