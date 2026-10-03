@@ -1,0 +1,68 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Tokens mirror the Figma "Colors" variable collection. */
+:root {
+	--bg: #f6f6f3;
+	--surface: #ffffff;
+	--surface-alt: #efefea;
+	--border: #e2e2db;
+	--border-strong: #c9c9bf;
+	--text: #1a1b1e;
+	--text-muted: #6b6d75;
+	--text-inverse: #ffffff;
+	--primary: #3d5afe;
+	--primary-soft: #e8ecff;
+	--primary-dark: #2a3fc2;
+	--success: #1f8a4c;
+	--success-soft: #e3f4ea;
+	--danger: #d13b3b;
+	--danger-soft: #fbe6e6;
+	--warn: #b7791f;
+	--warn-soft: #fff1d6;
+	--code-bg: #16181d;
+	--code-text: #e6e8ee;
+	--code-muted: #8a90a0;
+
+	--font-sans: 'Inter Variable', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+	--radius: 8px;
+	--radius-lg: 12px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-sans);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+button,
+input {
+	font: inherit;
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
