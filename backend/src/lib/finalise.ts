@@ -34,7 +34,9 @@ export async function finaliseAttempt(
     const row = locked[0];
     if (!row || row.submittedAt) return;
 
-    const puzzles = await tx<{ id: number }[]>`SELECT id FROM puzzles WHERE exam_id = ${row.examId} ORDER BY position`;
+    // Only the puzzles this student was given count, however many the exam has.
+    const puzzles = await tx<{ id: number }[]>`
+      SELECT puzzle_id AS id FROM attempt_puzzles WHERE attempt_id = ${attemptId} ORDER BY puzzle_id`;
     const lines = await tx<LineRow[]>`
       SELECT l.puzzle_id AS puzzleId, l.public_id AS publicId, l.solution_position AS solutionPosition,
              l.code, l.indent

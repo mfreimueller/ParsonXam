@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { raw, type SQLInstance } from '../db/sql.js';
 import { AppError } from '../errors.js';
 import { hashToken } from './hash.js';
+import { shuffled } from './shuffle.js';
 import { generateToken } from './token.js';
 
 export interface AttemptRow {
@@ -47,6 +48,8 @@ export async function createAttempt(db: SQLInstance, examId: number, name: strin
   return token;
 }
 
+const nullableNumber = (v: number | null) => (v === null ? null : Number(v));
+
 export interface StudentExam {
   id: number;
   title: string;
@@ -57,30 +60,36 @@ export interface StudentExam {
   closesAt: Date | null;
   publishedAt: Date | null;
   studentsIndent: boolean;
+  puzzlesPerStudent: number | null;
+}
+
+/** How many puzzles one student gets from an exam that has `available` puzzles. */
+export function assignedCount(exam: Pick<StudentExam, 'puzzlesPerStudent'>, available: number): number {
+  return exam.puzzlesPerStudent === null ? available : Math.min(exam.puzzlesPerStudent, available);
 }
 
 export async function findExamByCode(db: SQLInstance, code: string): Promise<StudentExam | null> {
   const rows = await db<(Omit<StudentExam, 'studentsIndent'> & { studentsIndent: number })[]>`
     SELECT e.id, e.title, e.instructions, c.name AS className, e.time_limit_seconds AS timeLimitSeconds,
            e.opens_at AS opensAt, e.closes_at AS closesAt, e.published_at AS publishedAt,
-           e.students_indent AS studentsIndent
+           e.students_indent AS studentsIndent, e.puzzles_per_student AS puzzlesPerStudent
     FROM exams e JOIN classes c ON c.id = e.class_id
     WHERE e.access_code = ${code}
   `;
   const r = rows[0];
-  return r ? { ...r, studentsIndent: Boolean(r.studentsIndent) } : null;
+  return r ? { ...r, studentsIndent: Boolean(r.studentsIndent), puzzlesPerStudent: nullableNumber(r.puzzlesPerStudent) } : null;
 }
 
 export async function findExamById(db: SQLInstance, examId: number): Promise<StudentExam> {
   const rows = await db<(Omit<StudentExam, 'studentsIndent'> & { studentsIndent: number })[]>`
     SELECT e.id, e.title, e.instructions, c.name AS className, e.time_limit_seconds AS timeLimitSeconds,
            e.opens_at AS opensAt, e.closes_at AS closesAt, e.published_at AS publishedAt,
-           e.students_indent AS studentsIndent
+           e.students_indent AS studentsIndent, e.puzzles_per_student AS puzzlesPerStudent
     FROM exams e JOIN classes c ON c.id = e.class_id
     WHERE e.id = ${examId}
   `;
   const r = rows[0]!;
-  return { ...r, studentsIndent: Boolean(r.studentsIndent) };
+  return { ...r, studentsIndent: Boolean(r.studentsIndent), puzzlesPerStudent: nullableNumber(r.puzzlesPerStudent) };
 }
 
 export async function findAttemptByToken(db: SQLInstance, token: string): Promise<AttemptRow | null> {
@@ -103,8 +112,11 @@ export async function startAttempt(db: SQLInstance, attempt: AttemptRow, exam: S
       WHERE id = ${attempt.id} AND started_at IS NULL
     `;
     if (res.affectedRows !== 1) return; // a parallel request already started it
-    const puzzles = await tx<{ id: number }[]>`SELECT id FROM puzzles WHERE exam_id = ${exam.id} ORDER BY position`;
-    for (const p of puzzles) {
+    const all = await tx<{ id: number }[]>`SELECT id FROM puzzles WHERE exam_id = ${exam.id} ORDER BY position`;
+    // The pick is random but follows the attempt's seed, so it is fixed once made and the
+    // exam's own puzzle order is kept.
+    const picked = new Set(shuffled(all, attempt.shuffleSeed).slice(0, assignedCount(exam, all.length)).map((p) => p.id));
+    for (const p of all.filter((p) => picked.has(p.id))) {
       await tx`INSERT INTO attempt_puzzles (attempt_id, puzzle_id, state, updated_at) VALUES (${attempt.id}, ${p.id}, '[]', ${now})`;
     }
   });

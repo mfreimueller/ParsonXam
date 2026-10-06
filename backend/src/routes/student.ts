@@ -3,13 +3,13 @@ import { z } from 'zod';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { normaliseCode } from '../lib/access_code.js';
-import { cleanName, createAttempt, findExamById, findExamByCode, getAttempt, startAttempt } from '../lib/attempts.js';
+import { assignedCount, cleanName, createAttempt, findExamById, findExamByCode, getAttempt, startAttempt } from '../lib/attempts.js';
 import { examPhase } from '../lib/exam_phase.js';
 import { finaliseAttempt } from '../lib/finalise.js';
 import { parseJson } from '../lib/http.js';
 import { clientIp } from '../lib/http.js';
 import { recordFailure, tooManyFailures } from '../lib/rate_limit.js';
-import { buildAttemptView } from '../lib/student_view.js';
+import { buildAttemptView, countExamPuzzles } from '../lib/student_view.js';
 import { saveState } from '../lib/save_state.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
@@ -61,12 +61,11 @@ async function joinableExam(c: Context, code: string) {
 student.post('/lookup', async (c) => {
   const { code } = await parseJson(c, lookupSchema);
   const exam = await joinableExam(c, code);
-  const puzzles = await getDb()<{ n: number }[]>`SELECT COUNT(*) AS n FROM puzzles WHERE exam_id = ${exam.id}`;
   return c.json({
     examTitle: exam.title,
     className: exam.className,
     timeLimitSeconds: exam.timeLimitSeconds,
-    puzzleCount: Number(puzzles[0]!.n),
+    puzzleCount: assignedCount(exam, await countExamPuzzles(getDb(), exam.id)),
     closesAt: exam.closesAt!.toISOString(),
   });
 });

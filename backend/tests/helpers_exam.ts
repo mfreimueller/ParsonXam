@@ -39,9 +39,10 @@ export const TABLE_PUZZLE = {
 export async function seedExam(
   teacher: TestTeacher,
   classId: number,
-  opts: { state?: 'live' | 'scheduled' | 'over'; studentsIndent?: boolean; timeLimitSeconds?: number; publish?: boolean } = {}
+  opts: { state?: 'live' | 'scheduled' | 'over'; studentsIndent?: boolean; timeLimitSeconds?: number; publish?: boolean;
+    /** Random subset size; null/undefined = all puzzles. */ puzzlesPerStudent?: number | null; extraPuzzles?: number } = {}
 ): Promise<SeededExam> {
-  const { state = 'live', studentsIndent = false, timeLimitSeconds = 600, publish = true } = opts;
+  const { state = 'live', studentsIndent = false, timeLimitSeconds = 600, publish = true, puzzlesPerStudent = null, extraPuzzles = 0 } = opts;
   const [opensAt, closesAt] = { live: [hours(-1), hours(1)], scheduled: [hours(1), hours(2)], over: [hours(-2), hours(-1)] }[state];
   const ex = await teacher.call('POST', `/api/teacher/classes/${classId}/exams`, {
     title: 'Loops',
@@ -49,10 +50,12 @@ export async function seedExam(
     closesAt,
     studentsIndent,
     timeLimitSeconds,
+    puzzlesPerStudent,
   });
   const exam = ((await ex.json()) as { exam: { id: number; accessCode: string } }).exam;
   const puzzleIds: number[] = [];
-  for (const body of [SUM_PUZZLE, TABLE_PUZZLE]) {
+  const extras = Array.from({ length: extraPuzzles }, (_, i) => ({ ...TABLE_PUZZLE, title: `Extra ${i + 1}` }));
+  for (const body of [SUM_PUZZLE, TABLE_PUZZLE, ...extras]) {
     const res = await teacher.call('POST', `/api/teacher/exams/${exam.id}/puzzles`, body);
     puzzleIds.push(((await res.json()) as { puzzle: { id: number } }).puzzle.id);
   }

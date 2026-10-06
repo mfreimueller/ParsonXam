@@ -1,5 +1,5 @@
 import type { SQLInstance } from '../db/sql.js';
-import { findExamById, type AttemptRow } from './attempts.js';
+import { assignedCount, findExamById, type AttemptRow } from './attempts.js';
 import { examPhase } from './exam_phase.js';
 import { puzzleSeed, shuffled } from './shuffle.js';
 import { puzzlePercent, round2 } from './scoring.js';
@@ -19,11 +19,24 @@ export function parseState(raw: unknown): Placed[] {
   return Array.isArray(value) ? (value as Placed[]) : [];
 }
 
+export type PuzzleRow = { id: number; title: string; description: string };
+
+/**
+ * The puzzles this student was given, in exam order. Once the attempt has started that is the set
+ * picked at start (attempt_puzzles); before that only the count is known.
+ */
+export async function attemptPuzzleRows(db: SQLInstance, attempt: AttemptRow): Promise<PuzzleRow[]> {
+  return db<PuzzleRow[]>`
+    SELECT p.id, p.title, p.description FROM puzzles p
+    JOIN attempt_puzzles ap ON ap.puzzle_id = p.id AND ap.attempt_id = ${attempt.id}
+    ORDER BY p.position
+  `;
+}
+
 export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now: Date) {
   const exam = await findExamById(db, attempt.examId);
-  const puzzleRows = await db<{ id: number; title: string; description: string }[]>`
-    SELECT id, title, description FROM puzzles WHERE exam_id = ${exam.id} ORDER BY position
-  `;
+  const puzzleRows = await attemptPuzzleRows(db, attempt);
+  const puzzleCount = attempt.startedAt ? puzzleRows.length : assignedCount(exam, await countExamPuzzles(db, exam.id));
 
   const base = {
     serverNow: now.toISOString(),
@@ -32,7 +45,7 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
       title: exam.title,
       className: exam.className,
       instructions: exam.instructions,
-      puzzleCount: puzzleRows.length,
+      puzzleCount,
       timeLimitSeconds: exam.timeLimitSeconds,
       studentsIndent: exam.studentsIndent,
       opensAt: exam.opensAt?.toISOString() ?? null,
@@ -99,7 +112,7 @@ export async function buildReview(
   db: SQLInstance,
   attempt: AttemptRow,
   studentsIndent: boolean,
-  puzzleRows: { id: number; title: string; description: string }[]
+  puzzleRows: PuzzleRow[]
 ) {
   const saved = await db<{ puzzleId: number; state: unknown }[]>`
     SELECT puzzle_id AS puzzleId, state FROM attempt_puzzles WHERE attempt_id = ${attempt.id}
@@ -138,4 +151,9 @@ export async function buildReview(
     });
   }
   return { puzzles };
+}
+
+export async function countExamPuzzles(db: SQLInstance, examId: number): Promise<number> {
+  const rows = await db<{ n: number }[]>`SELECT COUNT(*) AS n FROM puzzles WHERE exam_id = ${examId}`;
+  return Number(rows[0]!.n);
 }

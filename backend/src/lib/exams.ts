@@ -14,6 +14,7 @@ interface ExamRow {
   closesAt: Date | null;
   accessCode: string;
   studentsIndent: number;
+  puzzlesPerStudent: number | null;
   publishedAt: Date | null;
   createdById: number | null;
   createdByName: string | null;
@@ -31,6 +32,8 @@ export interface ExamView {
   opensAt: string | null;
   closesAt: string | null;
   studentsIndent: boolean;
+  /** null: every student gets all puzzles. */
+  puzzlesPerStudent: number | null;
   accessCode: string;
   status: ExamPhase;
   publishedAt: string | null;
@@ -43,7 +46,7 @@ export interface ExamView {
 const SELECT_EXAM = `
   SELECT e.id, e.class_id AS classId, e.title, e.instructions, e.time_limit_seconds AS timeLimitSeconds,
          e.opens_at AS opensAt, e.closes_at AS closesAt, e.access_code AS accessCode,
-         e.students_indent AS studentsIndent, e.published_at AS publishedAt,
+         e.students_indent AS studentsIndent, e.puzzles_per_student AS puzzlesPerStudent, e.published_at AS publishedAt,
          t.id AS createdById, t.display_name AS createdByName,
          (SELECT COUNT(*) FROM puzzles p WHERE p.exam_id = e.id) AS puzzleCount,
          (SELECT COUNT(*) FROM attempts a WHERE a.exam_id = e.id) AS attemptCount,
@@ -60,6 +63,7 @@ function toView(r: ExamRow, now = new Date()): ExamView {
     opensAt: r.opensAt?.toISOString() ?? null,
     closesAt: r.closesAt?.toISOString() ?? null,
     studentsIndent: Boolean(r.studentsIndent),
+    puzzlesPerStudent: r.puzzlesPerStudent === null ? null : Number(r.puzzlesPerStudent),
     accessCode: formatCode(r.accessCode),
     status: examPhase(r, now),
     publishedAt: r.publishedAt?.toISOString() ?? null,
@@ -101,6 +105,9 @@ export async function publishProblems(db: SQLInstance, exam: ExamView): Promise<
     FROM puzzles p WHERE p.exam_id = ${exam.id} ORDER BY p.position
   `;
   if (puzzles.length === 0) problems.push('Add at least one puzzle.');
+  else if (exam.puzzlesPerStudent !== null && exam.puzzlesPerStudent > puzzles.length) {
+    problems.push(`Each student should get ${exam.puzzlesPerStudent} puzzles, but the exam has only ${puzzles.length}.`);
+  }
   for (const p of puzzles) {
     if (Number(p.solutionLines) < 2) problems.push(`Puzzle “${p.title}” needs at least two solution lines.`);
   }

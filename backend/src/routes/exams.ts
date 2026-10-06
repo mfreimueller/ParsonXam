@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { generateAccessCode } from '../lib/access_code.js';
-import { examHasStartedAttempts } from '../lib/attempts.js';
+import { assertStructureEditable, examHasStartedAttempts } from '../lib/attempts.js';
 import { getExam, listExams, publishProblems, requireExamAccess } from '../lib/exams.js';
 import { parseJson } from '../lib/http.js';
 import { parseId, requireMember } from '../lib/membership.js';
@@ -21,6 +21,7 @@ const createSchema = z.object({
   opensAt: isoDate.nullable().default(null),
   closesAt: isoDate.nullable().default(null),
   studentsIndent: z.boolean().default(false),
+  puzzlesPerStudent: z.number().int().min(1).max(200).nullable().default(null),
 });
 const patchSchema = z
   .object({
@@ -30,6 +31,7 @@ const patchSchema = z
     opensAt: isoDate.nullable(),
     closesAt: isoDate.nullable(),
     studentsIndent: z.boolean(),
+    puzzlesPerStudent: z.number().int().min(1).max(200).nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'nothing to change' });
@@ -76,9 +78,9 @@ classExams.post('/:id/exams', async (c) => {
   const { id } = await insertWithUniqueCode(async (code) => {
     const res = await db`
       INSERT INTO exams (class_id, title, instructions, time_limit_seconds, opens_at, closes_at,
-                         access_code, students_indent, created_by, created_at)
+                         access_code, students_indent, puzzles_per_student, created_by, created_at)
       VALUES (${classId}, ${body.title}, ${body.instructions}, ${body.timeLimitSeconds}, ${body.opensAt},
-              ${body.closesAt}, ${code}, ${body.studentsIndent ? 1 : 0}, ${teacherId}, ${new Date()})
+              ${body.closesAt}, ${code}, ${body.studentsIndent ? 1 : 0}, ${body.puzzlesPerStudent}, ${teacherId}, ${new Date()})
     `;
     return res.lastInsertRowid;
   });
@@ -100,6 +102,10 @@ exams.patch('/:examId', async (c) => {
   if (body.studentsIndent !== undefined && body.studentsIndent !== exam.studentsIndent && exam.status !== 'draft') {
     throw new AppError(409, 'EXAM_LOCKED', 'The indentation setting cannot change once the exam is published.');
   }
+  if (body.puzzlesPerStudent !== undefined && body.puzzlesPerStudent !== exam.puzzlesPerStudent) {
+    await assertStructureEditable(db, examId);
+  }
+  const puzzlesPerStudent = body.puzzlesPerStudent !== undefined ? body.puzzlesPerStudent : exam.puzzlesPerStudent;
   const opensAt = body.opensAt !== undefined ? body.opensAt : exam.opensAt ? new Date(exam.opensAt) : null;
   const closesAt = body.closesAt !== undefined ? body.closesAt : exam.closesAt ? new Date(exam.closesAt) : null;
   checkOrder(opensAt, closesAt);
@@ -114,7 +120,8 @@ exams.patch('/:examId', async (c) => {
       time_limit_seconds = ${body.timeLimitSeconds ?? exam.timeLimitSeconds},
       opens_at = ${opensAt},
       closes_at = ${closesAt},
-      students_indent = ${(body.studentsIndent ?? exam.studentsIndent) ? 1 : 0}
+      students_indent = ${(body.studentsIndent ?? exam.studentsIndent) ? 1 : 0},
+      puzzles_per_student = ${puzzlesPerStudent}
     WHERE id = ${examId}
   `;
   return c.json({ exam: await getExam(db, examId) });

@@ -3,7 +3,7 @@ import { AppError } from '../errors.js';
 import { ATTEMPT_COLUMNS, getAttempt, type AttemptRow } from './attempts.js';
 import { raw } from '../db/sql.js';
 import { round2 } from './scoring.js';
-import { buildReview } from './student_view.js';
+import { attemptPuzzleRows, buildReview } from './student_view.js';
 
 type PuzzleRow = { id: number; title: string; description: string };
 type AttemptStatus = 'joined' | 'in_progress' | 'submitted';
@@ -41,9 +41,11 @@ export async function buildResults(db: SQLInstance, examId: number) {
     submittedAt: a.submittedAt?.toISOString() ?? null,
     submitReason: a.submitReason,
     scorePercent: a.submittedAt ? Number(a.scorePercent) : null,
+    // assigned is false for puzzles this student was not given (exams with a random subset).
     puzzles: puzzles.map((p) => ({
       puzzleId: p.id,
-      scorePercent: a.submittedAt ? (byAttempt.get(a.id)?.get(p.id) ?? 0) : null,
+      assigned: byAttempt.get(a.id)?.has(p.id) ?? false,
+      scorePercent: a.submittedAt && byAttempt.get(a.id)?.has(p.id) ? byAttempt.get(a.id)!.get(p.id)! : null,
     })),
   }));
 
@@ -70,7 +72,7 @@ export async function findAttempt(db: SQLInstance, attemptId: number): Promise<A
 }
 
 export async function buildAttemptDetail(db: SQLInstance, attempt: AttemptRow, studentsIndent: boolean) {
-  const puzzles = await examPuzzleRows(db, attempt.examId);
+  const puzzles = await attemptPuzzleRows(db, attempt);
   const { puzzles: review } = await buildReview(db, attempt, studentsIndent, puzzles);
   return {
     id: attempt.id,
@@ -115,7 +117,7 @@ export async function buildExport(db: SQLInstance, exam: ExportExam, className: 
 
   const results = [];
   for (const a of attempts) {
-    const { puzzles: review } = await buildReview(db, a, exam.studentsIndent, puzzles);
+    const { puzzles: review } = await buildReview(db, a, exam.studentsIndent, await attemptPuzzleRows(db, a));
     results.push({
       studentName: a.studentName,
       startedAt: a.startedAt?.toISOString() ?? null,
