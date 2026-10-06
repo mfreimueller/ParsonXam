@@ -22,7 +22,9 @@
 			minutes: String(Math.round(e.timeLimitSeconds / 60)),
 			opensAt: toLocalInput(e.opensAt),
 			closesAt: toLocalInput(e.closesAt),
-			studentsIndent: e.studentsIndent
+			studentsIndent: e.studentsIndent,
+			randomSubset: e.puzzlesPerStudent !== null,
+			perStudent: String(e.puzzlesPerStudent ?? Math.max(1, Math.min(2, e.puzzleCount)))
 		};
 	}
 
@@ -49,6 +51,7 @@
 			timeLimitSeconds: Math.round(Number(form.minutes) * 60),
 			opensAt: fromLocalInput(form.opensAt),
 			closesAt: fromLocalInput(form.closesAt),
+			puzzlesPerStudent: form.randomSubset ? Math.round(Number(form.perStudent)) : null,
 			...(isDraft ? { studentsIndent: form.studentsIndent } : {})
 		};
 	}
@@ -257,9 +260,20 @@
 				already set and students only reorder the lines – better for beginners.
 				{#if !isDraft}<br /><em>Locked once the exam is published.</em>{/if}
 			</Checkbox>
+			<Checkbox label="Give each student a random selection of the puzzles" bind:checked={form.randomSubset}>
+				Off: every student solves all puzzles. On: each student gets their own random pick, e.g. 2 out of 8. The pick is made
+				when the student starts, and the score is the average over the puzzles they were given.
+			</Checkbox>
+			{#if form.randomSubset}
+				<TextField label="Puzzles per student" type="number" min={1} max={Math.max(1, data.puzzles.length)} bind:value={form.perStudent} />
+				{#if Number(form.perStudent) > data.puzzles.length}
+					<p class="note">The exam has only {data.puzzles.length} {data.puzzles.length === 1 ? 'puzzle' : 'puzzles'} so far – add more before publishing.</p>
+				{/if}
+				<p class="note">Cannot be changed once students have started.</p>
+			{/if}
 		</Section>
 
-		<Section title="Puzzles" subtitle="Students solve these in order.">
+		<Section title="Puzzles" subtitle={exam.puzzlesPerStudent === null ? "Students solve these in order." : `Each student gets ${exam.puzzlesPerStudent} of these, picked at random.`}>
 			{#if data.puzzles.length === 0}
 				<p class="muted">No puzzles yet.</p>
 			{:else}

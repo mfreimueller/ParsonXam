@@ -28,6 +28,8 @@ export interface ExamView {
 	opensAt: string | null;
 	closesAt: string | null;
 	studentsIndent: boolean;
+	/** null: every student gets all puzzles. */
+	puzzlesPerStudent: number | null;
 	accessCode: string;
 	status: ExamStatus;
 	publishedAt: string | null;
@@ -73,7 +75,7 @@ export interface ResultRow {
 	submittedAt: string | null;
 	submitReason: SubmitReason | null;
 	scorePercent: number | null;
-	puzzles: { puzzleId: number; scorePercent: number | null }[];
+	puzzles: { puzzleId: number; assigned: boolean; scorePercent: number | null }[];
 }
 
 export interface ResultsView {

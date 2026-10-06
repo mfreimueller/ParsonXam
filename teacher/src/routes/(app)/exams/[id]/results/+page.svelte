@@ -100,7 +100,7 @@
 						<td class="name">{r.studentName}</td>
 						<td class:warn={cell.warn} class="muted">{cell.text}</td>
 						<td class="mono">
-							{r.status === 'submitted' ? r.puzzles.map((p) => Math.round(p.scorePercent ?? 0)).join(' · ') : '–'}
+							{r.status === 'submitted' ? r.puzzles.map((p) => (p.assigned ? Math.round(p.scorePercent ?? 0) : '–')).join(' · ') : '–'}
 						</td>
 						<td>
 							{#if r.scorePercent !== null}
