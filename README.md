@@ -4,6 +4,7 @@ Parsons-puzzle revision exams. Teachers build exams, students solve them by drag
 
 - `SPEC.md` – what we are building and why
 - `tasks/plan.md`, `tasks/todo.md` – implementation plan and task list
+- `.claude/skills/create-puzzle-json/` – skill (format, rules, validator) for agents that write puzzle JSON files to import on the exam page
 - Figma: https://www.figma.com/design/lEmNfY0spkvq753zbR48SL
 
 ## Packages

@@ -152,6 +152,32 @@
 		}
 	}
 
+	let fileInput = $state<HTMLInputElement>();
+	let imported = $state<string | null>(null);
+
+	async function importFile(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+		error = null;
+		imported = null;
+		let body: unknown;
+		try {
+			body = JSON.parse(await file.text());
+		} catch {
+			error = `${file.name} is not valid JSON.`;
+			return;
+		}
+		try {
+			const res = await api<{ imported: number }>(`/teacher/exams/${exam.id}/puzzles/import`, { method: 'POST', body });
+			imported = `Imported ${res.imported} ${res.imported === 1 ? 'puzzle' : 'puzzles'} from ${file.name}.`;
+			await invalidateAll();
+		} catch (err) {
+			error = `Nothing was imported. ${describe(err)}`;
+		}
+	}
+
 	async function deleteExam() {
 		if (!confirmDelete) {
 			confirmDelete = true;
@@ -255,7 +281,12 @@
 					{/each}
 				</ol>
 			{/if}
-			<div><Button variant="secondary" href="/exams/{exam.id}/puzzles/new">+ Add puzzle</Button></div>
+			{#if imported}<p class="note" role="status">{imported}</p>{/if}
+			<div class="buttons">
+				<Button variant="secondary" href="/exams/{exam.id}/puzzles/new">+ Add puzzle</Button>
+				<Button variant="secondary" onclick={() => fileInput?.click()}>Import from JSON</Button>
+				<input bind:this={fileInput} type="file" accept=".json,application/json" hidden onchange={importFile} />
+			</div>
 		</Section>
 	</div>
 

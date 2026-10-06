@@ -195,6 +195,50 @@ describe('delete and reorder puzzles', () => {
   });
 });
 
+describe('import', () => {
+  async function freshExam(): Promise<number> {
+    const cid = (await json<{ class: { id: number } }>(await anna.call('POST', '/api/teacher/classes', { name: 'Import' }))).class.id;
+    return (await json<{ exam: { id: number } }>(await anna.call('POST', `/api/teacher/classes/${cid}/exams`, { title: 'I' }))).exam.id;
+  }
+  const post = (e: number, body: unknown, who = anna) => who.call('POST', `/api/teacher/exams/${e}/puzzles/import`, body);
+  const titles = async (e: number) =>
+    (await json<{ puzzles: { title: string }[] }>(await anna.call('GET', `/api/teacher/exams/${e}/puzzles`))).puzzles.map((p) => p.title);
+
+  it('appends every puzzle in file order after the existing ones', async () => {
+    const e = await freshExam();
+    await anna.call('POST', `/api/teacher/exams/${e}/puzzles`, { ...SUM, title: 'existing' });
+    const res = await post(e, { puzzles: [{ ...SUM, title: 'first' }, { ...SUM, title: 'second', redHerrings: [] }] });
+    expect(res.status).toBe(201);
+    const out = await json<{ imported: number; puzzles: { title: string; position: number; redHerringCount: number }[] }>(res);
+    expect(out.imported).toBe(2);
+    expect(out.puzzles.map((p) => [p.position, p.title, p.redHerringCount])).toEqual([[1, 'existing', 1], [2, 'first', 1], [3, 'second', 0]]);
+  });
+
+  it('is all or nothing when one puzzle is invalid', async () => {
+    const e = await freshExam();
+    const res = await post(e, { puzzles: [SUM, { ...SUM, solution: [{ code: '  indented', indent: 0 }] }] });
+    expect(res.status).toBe(400);
+    expect((await json<{ message: string }>(res)).message).toMatch(/^puzzles\.1\.solution\.0\.code/);
+    expect(await titles(e)).toEqual([]);
+  });
+
+  for (const [name, body] of [
+    ['an empty list', { puzzles: [] }],
+    ['a bare puzzle without the puzzles wrapper', SUM],
+    ['more than 50 puzzles', { puzzles: Array.from({ length: 51 }, () => SUM) }],
+  ] as [string, unknown][]) {
+    it(`rejects ${name}`, async () => {
+      expect((await post(await freshExam(), body)).status).toBe(400);
+    });
+  }
+
+  it('is refused for outsiders', async () => {
+    const e = await freshExam();
+    expect((await post(e, { puzzles: [SUM] }, cara)).status).toBe(404);
+    expect(await titles(e)).toEqual([]);
+  });
+});
+
 describe('access', () => {
   it('shows nothing to outsiders', async () => {
     const p = await create({ ...SUM, title: 'Secret' });

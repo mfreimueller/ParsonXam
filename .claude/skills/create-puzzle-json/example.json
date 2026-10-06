@@ -1,0 +1,16 @@
+{
+  "puzzles": [
+    {
+      "title": "Sum of 1 to N",
+      "description": "Read n and print 1 + 2 + ... + n.",
+      "solution": [
+        { "code": "n = int(input())", "indent": 0 },
+        { "code": "total = 0", "indent": 0 },
+        { "code": "for i in range(1, n + 1):", "indent": 0 },
+        { "code": "total += i", "indent": 1 },
+        { "code": "print(total)", "indent": 0 }
+      ],
+      "redHerrings": [{ "code": "for i in range(n):", "indent": 0 }]
+    }
+  ]
+}

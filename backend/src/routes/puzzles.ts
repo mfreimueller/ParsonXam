@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getDb } from '../db/connection.js';
+import type { TransactionSQL } from '../db/sql.js';
 import { AppError } from '../errors.js';
 import { assertStructureEditable } from '../lib/attempts.js';
 import { requireExamAccess } from '../lib/exams.js';
@@ -39,6 +40,22 @@ const bodySchema = z
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', message: 'line ids must be unique' });
   });
 
+type PuzzleInput = z.infer<typeof bodySchema>;
+
+// Appends a puzzle at the end of the exam.
+async function insertPuzzle(tx: TransactionSQL, examId: number, body: PuzzleInput): Promise<number> {
+  const next = await tx<{ n: number }[]>`SELECT COALESCE(MAX(position), 0) + 1 AS n FROM puzzles WHERE exam_id = ${examId}`;
+  const res = await tx`
+    INSERT INTO puzzles (exam_id, position, title, description)
+    VALUES (${examId}, ${next[0]!.n}, ${body.title}, ${body.description})
+  `;
+  await replaceLines(tx, res.lastInsertRowid, body.solution, body.redHerrings);
+  return res.lastInsertRowid;
+}
+
+// Import file: { "puzzles": [ { title, description, solution, redHerrings } ] }, see docs/puzzle-import.md.
+const importSchema = z.object({ puzzles: z.array(bodySchema).min(1).max(50) });
+
 export const examPuzzles = new Hono<{ Variables: TeacherVariables }>();
 examPuzzles.use('*', teacherAuth);
 
@@ -56,16 +73,22 @@ examPuzzles.post('/:examId/puzzles', async (c) => {
   await assertStructureEditable(db, examId);
   const body = await parseJson(c, bodySchema);
 
-  const puzzleId = await db.begin(async (tx) => {
-    const next = await tx<{ n: number }[]>`SELECT COALESCE(MAX(position), 0) + 1 AS n FROM puzzles WHERE exam_id = ${examId}`;
-    const res = await tx`
-      INSERT INTO puzzles (exam_id, position, title, description)
-      VALUES (${examId}, ${next[0]!.n}, ${body.title}, ${body.description})
-    `;
-    await replaceLines(tx, res.lastInsertRowid, body.solution, body.redHerrings);
-    return res.lastInsertRowid;
-  });
+  const puzzleId = await db.begin((tx) => insertPuzzle(tx, examId, body));
   return c.json({ puzzle: await getPuzzle(db, puzzleId) }, 201);
+});
+
+examPuzzles.post('/:examId/puzzles/import', async (c) => {
+  const db = getDb();
+  const examId = parseId(c.req.param('examId'));
+  await requireExamAccess(db, c.get('teacher').id, examId);
+  await assertStructureEditable(db, examId);
+  const { puzzles: incoming } = await parseJson(c, importSchema);
+
+  // All or nothing: one bad puzzle must not leave half a file behind.
+  await db.begin(async (tx) => {
+    for (const body of incoming) await insertPuzzle(tx, examId, body);
+  });
+  return c.json({ imported: incoming.length, puzzles: await listPuzzles(db, examId) }, 201);
 });
 
 const orderSchema = z.object({ puzzleIds: z.array(z.number().int().positive()).min(1).max(50) });
