@@ -78,6 +78,10 @@
 				<span>Solutions unlock in</span>
 				<strong>{formatRemaining(untilUnlock)}</strong>
 			</div>
+			<div class="leave">
+				<Button variant="secondary" onclick={finish}>Join a different exam</Button>
+				<span class="muted">Your answers are saved. This removes your name from this device.</span>
+			</div>
 		</div>
 	</Card>
 {:else if view && review}
@@ -389,8 +393,15 @@
 		flex-wrap: wrap;
 		padding-top: 8px;
 	}
-	.finish .muted {
+	.finish .muted,
+	.leave .muted {
 		font-size: 12px;
+	}
+	.leave {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
 	}
 	.err {
 		color: var(--danger);
