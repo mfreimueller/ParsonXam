@@ -109,7 +109,7 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 ## Phase 9: Template puzzles (see SPEC.md "Template puzzles")
 All on branch `feature/template-puzzles`, one atomic commit (or a few) per task. Verify each task with `npm test` + `npm run lint` (backend) / `npm run check` + `npm test` (apps), reading the summary lines.
 
-- [ ] **24. Template parser and scorer** (pure functions)
+- [x] **24. Template parser and scorer** (pure functions)
   - Acceptance: `backend/src/lib/template.ts` parses a template into lines of segments, gaps (expected texts, anyOrder, empty), solution pieces and errors with line numbers per the syntax rules; builds pool tiles from solution + herrings + reusable; `backend/src/lib/scoring.ts` gains `templatePercent(gaps, placedTexts)` (LCS / multiset) and a helper that returns per-piece `correct` flags. Teacher copy `teacher/src/lib/template.ts` byte-identical, guarded by a backend test.
   - Verify: unit tests: escapes, `~`, `{{}}` rules, multiple gaps per line, context lines, tabs, limits, whitespace normalisation; scoring examples (missing piece, extra piece, herring, empty gap filled, any-order permutation, nothing placed = 0, reusable used twice).
 - [ ] **25. Migration 0006 and teacher API**
