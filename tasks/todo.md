@@ -112,7 +112,7 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 - [x] **24. Template parser and scorer** (pure functions)
   - Acceptance: `backend/src/lib/template.ts` parses a template into lines of segments, gaps (expected texts, anyOrder, empty), solution pieces and errors with line numbers per the syntax rules; builds pool tiles from solution + herrings + reusable; `backend/src/lib/scoring.ts` gains `templatePercent(gaps, placedTexts)` (LCS / multiset) and a helper that returns per-piece `correct` flags. Teacher copy `teacher/src/lib/template.ts` byte-identical, guarded by a backend test.
   - Verify: unit tests: escapes, `~`, `{{}}` rules, multiple gaps per line, context lines, tabs, limits, whitespace normalisation; scoring examples (missing piece, extra piece, herring, empty gap filled, any-order permutation, nothing placed = 0, reusable used twice).
-- [ ] **25. Migration 0006 and teacher API**
+- [x] **25. Migration 0006 and teacher API**
   - Acceptance: `puzzles.kind`, `puzzles.template`, `puzzle_pieces`; create/replace/get/list/import accept and return both kinds; kind change allowed while unlocked; publish rule ≥ 2 pieces; `EXAM_LOCKED` unchanged.
   - Verify: migration test (existing puzzles become `lines`); route tests for template create/replace/get/import, validation errors carry line numbers, kind switch, publish rule.
 - [ ] **26. Student API: view and autosave**

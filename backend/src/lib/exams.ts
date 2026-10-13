@@ -3,6 +3,7 @@ import { AppError } from '../errors.js';
 import { formatCode } from './access_code.js';
 import { examPhase, type ExamPhase } from './exam_phase.js';
 import { requireMember } from './membership.js';
+import { parseTemplate } from './template.js';
 
 interface ExamRow {
   id: number;
@@ -99,8 +100,8 @@ export async function publishProblems(db: SQLInstance, exam: ExamView): Promise<
   else if (new Date(exam.opensAt) >= new Date(exam.closesAt)) problems.push('The exam must open before it is over.');
   if (exam.timeLimitSeconds <= 0) problems.push('Set a time limit.');
 
-  const puzzles = await db<{ id: number; title: string; solutionLines: number }[]>`
-    SELECT p.id, p.title,
+  const puzzles = await db<{ id: number; title: string; kind: 'lines' | 'template'; template: string | null; solutionLines: number }[]>`
+    SELECT p.id, p.title, p.kind, p.template,
            (SELECT COUNT(*) FROM puzzle_lines l WHERE l.puzzle_id = p.id AND l.solution_position IS NOT NULL) AS solutionLines
     FROM puzzles p WHERE p.exam_id = ${exam.id} ORDER BY p.position
   `;
@@ -109,7 +110,9 @@ export async function publishProblems(db: SQLInstance, exam: ExamView): Promise<
     problems.push(`Each student should get ${exam.puzzlesPerStudent} puzzles, but the exam has only ${puzzles.length}.`);
   }
   for (const p of puzzles) {
-    if (Number(p.solutionLines) < 2) problems.push(`Puzzle “${p.title}” needs at least two solution lines.`);
+    if (p.kind === 'template') {
+      if (parseTemplate(p.template ?? '').pieces.length < 2) problems.push(`Puzzle “${p.title}” needs at least two solution pieces.`);
+    } else if (Number(p.solutionLines) < 2) problems.push(`Puzzle “${p.title}” needs at least two solution lines.`);
   }
   return problems;
 }
