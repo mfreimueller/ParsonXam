@@ -118,7 +118,7 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 - [x] **26. Student API: view and autosave**
   - Acceptance: `in_progress` payload per spec (segments, shuffled tiles, `kind`); autosave `{gaps}` validation; line puzzles unchanged apart from `kind`.
   - Verify: leak test extended: no expected texts per gap, no `~`, no herring/empty-gap flags before exam over; autosave tests (unknown gap, foreign piece, non-reusable twice rejected; reusable twice accepted; >20 per gap rejected).
-- [ ] **27. Finalise, review, results, export**
+- [x] **27. Finalise, review, results, export**
   - Acceptance: finalise scores template puzzles with the new scorer; student review, teacher attempt detail, results list and export per spec.
   - Verify: tests: mixed exam (lines + template) scores; export scores equal results scores; review payload shape.
 

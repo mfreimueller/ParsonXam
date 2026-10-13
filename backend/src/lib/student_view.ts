@@ -4,6 +4,7 @@ import { examPhase } from './exam_phase.js';
 import { puzzleSeed, shuffled } from './shuffle.js';
 import { puzzlePercent, round2 } from './scoring.js';
 import { parseTemplate } from './template.js';
+import { evaluateTemplate, loadTileTexts } from './template_result.js';
 
 // The ONLY place that turns puzzle data into something a student receives.
 // While an exam is running it never reads solution_position, so the correct order and the red
@@ -146,10 +147,28 @@ export async function buildReview(
   const saved = await db<{ puzzleId: number; state: unknown }[]>`
     SELECT puzzle_id AS puzzleId, state FROM attempt_puzzles WHERE attempt_id = ${attempt.id}
   `;
-  const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, parseState(s.state)]));
+  const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, s.state]));
+  const tiles = await loadTileTexts(db, puzzleRows.filter((p) => p.kind === 'template').map((p) => p.id));
 
   const puzzles = [];
   for (const p of puzzleRows) {
+    if (p.kind === 'template') {
+      const flags = await db<{ pieceText: string; reusable: number; herring: number }[]>`
+        SELECT text AS pieceText, reusable, herring FROM puzzle_pieces WHERE puzzle_id = ${p.id} ORDER BY id
+      `;
+      const outcome = evaluateTemplate(p.template ?? '', tiles.get(p.id) ?? new Map(), parseGaps(stateByPuzzle.get(p.id)));
+      puzzles.push({
+        id: p.id,
+        kind: 'template' as const,
+        title: p.title,
+        description: p.description,
+        scorePercent: round2(outcome.percent),
+        lines: outcome.lines,
+        redHerrings: flags.filter((f) => f.herring).map((f) => f.pieceText),
+        reusable: [...new Set(flags.filter((f) => f.reusable).map((f) => f.pieceText))],
+      });
+      continue;
+    }
     const lines = await db<{ publicId: string; code: string; indent: number; solutionPosition: number | null }[]>`
       SELECT public_id AS publicId, code, indent, solution_position AS solutionPosition
       FROM puzzle_lines WHERE puzzle_id = ${p.id} ORDER BY solution_position IS NULL, solution_position, id
@@ -162,12 +181,13 @@ export async function buildReview(
       .filter((l) => l.solutionPosition === null)
       .map((l) => ({ code: l.code, indent: Number(l.indent) }));
 
-    const placed: ReviewLine[] = (stateByPuzzle.get(p.id) ?? []).flatMap((s) => {
+    const placed: ReviewLine[] = parseState(stateByPuzzle.get(p.id)).flatMap((s) => {
       const line = byId.get(s.pieceId);
       return line ? [{ code: line.code, indent: studentsIndent ? s.indent : Number(line.indent) }] : [];
     });
     puzzles.push({
       id: p.id,
+      kind: 'lines' as const,
       title: p.title,
       description: p.description,
       scorePercent: round2(puzzlePercent(solution, placed)),
