@@ -115,7 +115,7 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 - [x] **25. Migration 0006 and teacher API**
   - Acceptance: `puzzles.kind`, `puzzles.template`, `puzzle_pieces`; create/replace/get/list/import accept and return both kinds; kind change allowed while unlocked; publish rule ≥ 2 pieces; `EXAM_LOCKED` unchanged.
   - Verify: migration test (existing puzzles become `lines`); route tests for template create/replace/get/import, validation errors carry line numbers, kind switch, publish rule.
-- [ ] **26. Student API: view and autosave**
+- [x] **26. Student API: view and autosave**
   - Acceptance: `in_progress` payload per spec (segments, shuffled tiles, `kind`); autosave `{gaps}` validation; line puzzles unchanged apart from `kind`.
   - Verify: leak test extended: no expected texts per gap, no `~`, no herring/empty-gap flags before exam over; autosave tests (unknown gap, foreign piece, non-reusable twice rejected; reusable twice accepted; >20 per gap rejected).
 - [ ] **27. Finalise, review, results, export**

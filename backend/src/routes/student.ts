@@ -10,7 +10,7 @@ import { parseJson } from '../lib/http.js';
 import { clientIp } from '../lib/http.js';
 import { recordFailure, tooManyFailures } from '../lib/rate_limit.js';
 import { buildAttemptView, countExamPuzzles } from '../lib/student_view.js';
-import { saveState } from '../lib/save_state.js';
+import { MAX_PIECES_PER_GAP, saveState } from '../lib/save_state.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
 export const student = new Hono<{ Variables: StudentVariables }>();
@@ -103,15 +103,18 @@ student.post('/start', studentAuth, async (c) => {
   return c.json(await buildAttemptView(db, await getAttempt(db, attempt.id), now));
 });
 
+// Line puzzles send `placed`, template puzzles send `gaps`; saveState checks which one fits the puzzle.
 const stateSchema = z.object({
   placed: z
     .array(z.object({ pieceId: z.string().max(40), indent: z.number().int().min(0).max(6).default(0) }))
-    .max(60),
+    .max(60)
+    .optional(),
+  gaps: z.record(z.string().max(4), z.array(z.string().max(40)).max(MAX_PIECES_PER_GAP)).optional(),
 });
 
 student.put('/puzzles/:id/state', studentAuth, async (c) => {
   const body = await parseJson(c, stateSchema);
-  const savedAt = await saveState(getDb(), c.get('attempt'), Number(c.req.param('id')), body.placed, new Date());
+  const savedAt = await saveState(getDb(), c.get('attempt'), Number(c.req.param('id')), body, new Date());
   return c.json({ ok: true, savedAt: savedAt.toISOString() });
 });
 

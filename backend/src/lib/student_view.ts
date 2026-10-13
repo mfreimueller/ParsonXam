@@ -3,6 +3,7 @@ import { assignedCount, findExamById, type AttemptRow } from './attempts.js';
 import { examPhase } from './exam_phase.js';
 import { puzzleSeed, shuffled } from './shuffle.js';
 import { puzzlePercent, round2 } from './scoring.js';
+import { parseTemplate } from './template.js';
 
 // The ONLY place that turns puzzle data into something a student receives.
 // While an exam is running it never reads solution_position, so the correct order and the red
@@ -19,7 +20,14 @@ export function parseState(raw: unknown): Placed[] {
   return Array.isArray(value) ? (value as Placed[]) : [];
 }
 
-export type PuzzleRow = { id: number; title: string; description: string };
+/** Template puzzles store { gaps: { "<gapIndex>": [pieceId, ...] } }. */
+export function parseGaps(raw: unknown): Record<string, string[]> {
+  const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  const gaps = value && typeof value === 'object' ? (value as { gaps?: unknown }).gaps : undefined;
+  return gaps && typeof gaps === 'object' && !Array.isArray(gaps) ? (gaps as Record<string, string[]>) : {};
+}
+
+export type PuzzleRow = { id: number; title: string; description: string; kind: 'lines' | 'template'; template: string | null };
 
 /**
  * The puzzles this student was given, in exam order. Once the attempt has started that is the set
@@ -27,7 +35,7 @@ export type PuzzleRow = { id: number; title: string; description: string };
  */
 export async function attemptPuzzleRows(db: SQLInstance, attempt: AttemptRow): Promise<PuzzleRow[]> {
   return db<PuzzleRow[]>`
-    SELECT p.id, p.title, p.description FROM puzzles p
+    SELECT p.id, p.title, p.description, p.kind, p.template FROM puzzles p
     JOIN attempt_puzzles ap ON ap.puzzle_id = p.id AND ap.attempt_id = ${attempt.id}
     ORDER BY p.position
   `;
@@ -72,10 +80,30 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
   const saved = await db<{ puzzleId: number; state: unknown }[]>`
     SELECT puzzle_id AS puzzleId, state FROM attempt_puzzles WHERE attempt_id = ${attempt.id}
   `;
-  const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, parseState(s.state)]));
+  const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, s.state]));
 
   const puzzles = [];
   for (const p of puzzleRows) {
+    if (p.kind === 'template') {
+      // Fixed text and gap numbers only: which gaps are empty, any-order or what belongs where stays on the server.
+      const tiles = await db<{ publicId: string; pieceText: string; reusable: number }[]>`
+        SELECT public_id AS publicId, text AS pieceText, reusable FROM puzzle_pieces WHERE puzzle_id = ${p.id} ORDER BY id
+      `;
+      puzzles.push({
+        id: p.id,
+        kind: 'template' as const,
+        title: p.title,
+        description: p.description,
+        lines: parseTemplate(p.template ?? '').lines,
+        pieces: shuffled(tiles, puzzleSeed(attempt.shuffleSeed, p.id)).map((t) => ({
+          pieceId: t.publicId,
+          text: t.pieceText,
+          reusable: Boolean(t.reusable),
+        })),
+        placed: { gaps: parseGaps(stateByPuzzle.get(p.id)) },
+      });
+      continue;
+    }
     const lines = await db<{ publicId: string; code: string; indent: number }[]>`
       SELECT public_id AS publicId, code, indent FROM puzzle_lines WHERE puzzle_id = ${p.id} ORDER BY id
     `;
@@ -87,10 +115,11 @@ export async function buildAttemptView(db: SQLInstance, attempt: AttemptRow, now
     );
     puzzles.push({
       id: p.id,
+      kind: 'lines' as const,
       title: p.title,
       description: p.description,
       pieces,
-      placed: stateByPuzzle.get(p.id) ?? [],
+      placed: parseState(stateByPuzzle.get(p.id)),
     });
   }
 
