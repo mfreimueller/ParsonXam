@@ -105,3 +105,36 @@ Convention: each task = one branch `feature/<slug>` → merged to `main`. Verify
 
 ### Checkpoint E (after 23)
 - [ ] All success criteria in `SPEC.md` met. Ready for the first real class.
+
+## Phase 9: Template puzzles (see SPEC.md "Template puzzles")
+All on branch `feature/template-puzzles`, one atomic commit (or a few) per task. Verify each task with `npm test` + `npm run lint` (backend) / `npm run check` + `npm test` (apps), reading the summary lines.
+
+- [ ] **24. Template parser and scorer** (pure functions)
+  - Acceptance: `backend/src/lib/template.ts` parses a template into lines of segments, gaps (expected texts, anyOrder, empty), solution pieces and errors with line numbers per the syntax rules; builds pool tiles from solution + herrings + reusable; `backend/src/lib/scoring.ts` gains `templatePercent(gaps, placedTexts)` (LCS / multiset) and a helper that returns per-piece `correct` flags. Teacher copy `teacher/src/lib/template.ts` byte-identical, guarded by a backend test.
+  - Verify: unit tests: escapes, `~`, `{{}}` rules, multiple gaps per line, context lines, tabs, limits, whitespace normalisation; scoring examples (missing piece, extra piece, herring, empty gap filled, any-order permutation, nothing placed = 0, reusable used twice).
+- [ ] **25. Migration 0006 and teacher API**
+  - Acceptance: `puzzles.kind`, `puzzles.template`, `puzzle_pieces`; create/replace/get/list/import accept and return both kinds; kind change allowed while unlocked; publish rule ≥ 2 pieces; `EXAM_LOCKED` unchanged.
+  - Verify: migration test (existing puzzles become `lines`); route tests for template create/replace/get/import, validation errors carry line numbers, kind switch, publish rule.
+- [ ] **26. Student API: view and autosave**
+  - Acceptance: `in_progress` payload per spec (segments, shuffled tiles, `kind`); autosave `{gaps}` validation; line puzzles unchanged apart from `kind`.
+  - Verify: leak test extended: no expected texts per gap, no `~`, no herring/empty-gap flags before exam over; autosave tests (unknown gap, foreign piece, non-reusable twice rejected; reusable twice accepted; >20 per gap rejected).
+- [ ] **27. Finalise, review, results, export**
+  - Acceptance: finalise scores template puzzles with the new scorer; student review, teacher attempt detail, results list and export per spec.
+  - Verify: tests: mixed exam (lines + template) scores; export scores equal results scores; review payload shape.
+
+### Checkpoint F (after 27)
+- [ ] Backend complete; all suites green. Report to Michael.
+
+- [ ] **28. Student UI: `TemplatePuzzle.svelte`**
+  - Acceptance: per spec UI section: inline gaps, pool chips, reusable copy-on-drag, tap/keyboard path, reorder inside a gap, restore from saved state, autosave via existing `Autosaver`; exam and review screens switch on `kind`.
+  - Verify: component/unit tests for state helpers (add/remove/move, reusable copies, serialisation to `{gaps}`); `npm run check`; manual run at 1280, 820 and 390 px.
+- [ ] **29. Teacher editor for templates**
+  - Acceptance: kind switch, template editor with Mark-as-piece and Any-order buttons, live preview + errors, piece list with reusable checkboxes, red herrings, student preview; results and attempt detail render template puzzles.
+  - Verify: unit tests for the wrap/toggle helpers; manual: build the JPA and the SQL example from the spec, publish, take as a student.
+
+### Checkpoint G (after 29)
+- [ ] Michael builds a JPA and an SQL puzzle, takes them as a student, checks results and export.
+
+- [ ] **30. Docs and skill**
+  - Acceptance: `docs/puzzle-import.md` describes both shapes; `.claude/skills/create-puzzle-json` (SKILL.md, example.json, validate.mjs) supports template puzzles; `tasks/handoff.md` updated.
+  - Verify: `validate.mjs` accepts the example, which imports successfully.
