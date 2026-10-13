@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { api, ApiError } from '#lib/api.js';
-	import { loadAttempt, type PuzzleState } from '#lib/attempt.js';
+	import { isUntouched, loadAttempt, type Placed, type PuzzleState, type SavedState } from '#lib/attempt.js';
 	import { Autosaver, type SaveStatus } from '#lib/autosave.js';
 	import Button from '#lib/components/Button.svelte';
 	import Dialog from '#lib/components/Dialog.svelte';
 	import Logo from '#lib/components/Logo.svelte';
 	import Puzzle from '#lib/components/Puzzle.svelte';
+	import TemplatePuzzle from '#lib/components/TemplatePuzzle.svelte';
+	import type { Gaps } from '#lib/template_state.js';
 	import { go, goForAttempt } from '#lib/nav.js';
 	import { session } from '#lib/session.svelte.js';
 	import { formatCountdown } from '#lib/time.js';
@@ -31,8 +33,8 @@
 
 	let tick: ReturnType<typeof setInterval>;
 
-	const saver = new Autosaver({
-		send: (puzzleId, placed) => api(`/student/puzzles/${puzzleId}/state`, { method: 'PUT', body: { placed }, auth: true }),
+	const saver = new Autosaver<SavedState>({
+		send: (puzzleId, state) => api(`/student/puzzles/${puzzleId}/state`, { method: 'PUT', body: state, auth: true }),
 		// Submitted or signed out: nothing more can be saved, so show where the student stands.
 		isFatal: (err) => err instanceof ApiError && [401, 404, 409].includes(err.status),
 		onFatal: () => void finish(),
@@ -100,10 +102,18 @@
 		if (status !== 'saved' && !finishing) e.preventDefault();
 	}
 
-	function moved(placed: { pieceId: string; indent: number }[]) {
+	function moved(placed: Placed[]) {
 		const p = puzzles[index]!;
+		if (p.kind !== 'lines') return;
 		p.placed = placed;
-		saver.queue(p.id, placed);
+		saver.queue(p.id, { placed });
+	}
+
+	function movedGaps(gaps: Gaps) {
+		const p = puzzles[index]!;
+		if (p.kind !== 'template') return;
+		p.placed = { gaps };
+		saver.queue(p.id, { gaps });
 	}
 
 	async function show(i: number) {
@@ -113,7 +123,7 @@
 		window.scrollTo({ top: 0 });
 	}
 
-	const untouched = $derived(puzzles.filter((p) => p.placed.length === 0));
+	const untouched = $derived(puzzles.filter(isUntouched));
 
 	async function submit() {
 		submitting = true;
@@ -168,11 +178,15 @@
 		<div class="task">
 			<h1>Puzzle {index + 1}: {puzzle.title}</h1>
 			{#if puzzle.description}<p>{puzzle.description}</p>{/if}
-			{#if studentsIndent}<p class="tip">Use the ⇤ ⇥ buttons to indent each line.</p>{/if}
+			{#if studentsIndent && puzzle.kind === 'lines'}<p class="tip">Use the ⇤ ⇥ buttons to indent each line.</p>{/if}
 		</div>
 
 		{#key puzzle.id}
-			<Puzzle pieces={puzzle.pieces} placed={puzzle.placed} {studentsIndent} onchange={moved} />
+			{#if puzzle.kind === 'template'}
+				<TemplatePuzzle lines={puzzle.lines} pieces={puzzle.pieces} placed={puzzle.placed.gaps} onchange={movedGaps} />
+			{:else}
+				<Puzzle pieces={puzzle.pieces} placed={puzzle.placed} {studentsIndent} onchange={moved} />
+			{/if}
 		{/key}
 
 		<div class="footer">

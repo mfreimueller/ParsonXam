@@ -125,7 +125,7 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 ### Checkpoint F (after 27)
 - [ ] Backend complete; all suites green. Report to Michael.
 
-- [ ] **28. Student UI: `TemplatePuzzle.svelte`**
+- [x] **28. Student UI: `TemplatePuzzle.svelte`**
   - Acceptance: per spec UI section: inline gaps, pool chips, reusable copy-on-drag, tap/keyboard path, reorder inside a gap, restore from saved state, autosave via existing `Autosaver`; exam and review screens switch on `kind`.
   - Verify: component/unit tests for state helpers (add/remove/move, reusable copies, serialisation to `{gaps}`); `npm run check`; manual run at 1280, 820 and 390 px.
 - [ ] **29. Teacher editor for templates**

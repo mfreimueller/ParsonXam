@@ -1,9 +1,7 @@
-import type { Placed } from './attempt.js';
-
 export type SaveStatus = 'saved' | 'saving' | 'offline';
 
-export interface AutosaverOptions {
-	send: (puzzleId: number, placed: Placed[]) => Promise<void>;
+export interface AutosaverOptions<T> {
+	send: (puzzleId: number, state: T) => Promise<void>;
 	/** True for errors that retrying cannot fix (already submitted, token gone). */
 	isFatal: (err: unknown) => boolean;
 	onFatal: (err: unknown) => void;
@@ -12,10 +10,10 @@ export interface AutosaverOptions {
 	retryDelaysMs?: number[];
 }
 
-// Keeps the latest arrangement of each puzzle and gets it to the server: debounced, one request at
+// Keeps the latest arrangement of each puzzle (T: whatever the server takes for it) and gets it to the server: debounced, one request at
 // a time, retrying with growing pauses when the network drops. The last write always wins.
-export class Autosaver {
-	private pending = new Map<number, Placed[]>();
+export class Autosaver<T> {
+	private pending = new Map<number, T>();
 	private timer: ReturnType<typeof setTimeout> | null = null;
 	private running: Promise<void> | null = null;
 	private failures = 0;
@@ -23,15 +21,15 @@ export class Autosaver {
 	private readonly debounceMs: number;
 	private readonly retryDelays: number[];
 
-	constructor(private readonly opts: AutosaverOptions) {
+	constructor(private readonly opts: AutosaverOptions<T>) {
 		this.debounceMs = opts.debounceMs ?? 400;
 		this.retryDelays = opts.retryDelaysMs ?? [1000, 2000, 4000, 8000];
 	}
 
 	/** Remember a new arrangement; it is sent shortly after the student stops moving pieces. */
-	queue(puzzleId: number, placed: Placed[]): void {
+	queue(puzzleId: number, state: T): void {
 		if (this.stopped) return;
-		this.pending.set(puzzleId, placed);
+		this.pending.set(puzzleId, state);
 		this.opts.onStatus('saving');
 		if (this.timer) clearTimeout(this.timer);
 		this.timer = setTimeout(() => void this.run(), this.debounceMs);
@@ -59,12 +57,12 @@ export class Autosaver {
 
 	private async loop(): Promise<void> {
 		while (this.pending.size > 0 && !this.stopped) {
-			const [puzzleId, placed] = this.pending.entries().next().value!;
+			const [puzzleId, state] = this.pending.entries().next().value!;
 			try {
-				await this.opts.send(puzzleId, placed);
+				await this.opts.send(puzzleId, state);
 				this.failures = 0;
 				// Only forget it if the student did not move something in the meantime.
-				if (this.pending.get(puzzleId) === placed) this.pending.delete(puzzleId);
+				if (this.pending.get(puzzleId) === state) this.pending.delete(puzzleId);
 				else {
 					// A newer arrangement is waiting; it goes next.
 				}

@@ -5,6 +5,7 @@
 	import Button from '#lib/components/Button.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import Ring from '#lib/components/Ring.svelte';
+	import TemplateReview from '#lib/components/TemplateReview.svelte';
 	import { go, goForAttempt } from '#lib/nav.js';
 	import { session } from '#lib/session.svelte.js';
 	import { formatRemaining } from '#lib/time.js';
@@ -108,47 +109,57 @@
 		{#if current}
 			<h2>Puzzle {tab + 1}: {current.title}</h2>
 			{#if current.description}<p class="muted">{current.description}</p>{/if}
-			<div class="panels">
-				<section class="panel" aria-labelledby="mine">
+			{#if current.kind === 'template'}
+				<div class="panel">
 					<header>
-						<h3 id="mine">Your submission</h3>
-						<span class="pill {tone(current.scorePercent)}">
-							{current.submission.filter((l) => l.correct).length} of {current.solution.length} correct
-						</span>
+						<h3>Your answer</h3>
+						<span class="pill {tone(current.scorePercent)}">{Math.round(current.scorePercent)}%</span>
 					</header>
-					{#if current.submission.length === 0}
-						<p class="empty">You didn’t place any pieces here.</p>
-					{/if}
-					<ol>
-						{#each current.submission as line}
-							<li class:right={line.correct} class:wrong={!line.correct}>
-								<code style:padding-left="{line.indent * 24}px">{line.code}</code>
-								<span class="sr">{line.correct ? 'correct' : 'wrong'}</span>
-								<span aria-hidden="true" class="mark">{line.correct ? '✓' : '✕'}</span>
-							</li>
-						{/each}
-					</ol>
-				</section>
-				<section class="panel" aria-labelledby="sol">
-					<header>
-						<h3 id="sol">Solution</h3>
-						<span class="pill ok">Correct answer</span>
-					</header>
-					<ol>
-						{#each current.solution as line}
-							<li><code style:padding-left="{line.indent * 24}px">{line.code}</code></li>
-						{/each}
-					</ol>
-					{#if current.redHerrings.length}
-						<h4>Red herrings (not part of the solution)</h4>
-						<ol>
-							{#each current.redHerrings as line}
-								<li class="herring"><code style:padding-left="{line.indent * 24}px">{line.code}</code></li>
-							{/each}
-						</ol>
-					{/if}
-				</section>
-			</div>
+					<TemplateReview lines={current.lines} redHerrings={current.redHerrings} />
+				</div>
+			{:else}
+				<div class="panels">
+						<section class="panel" aria-labelledby="mine">
+							<header>
+								<h3 id="mine">Your submission</h3>
+								<span class="pill {tone(current.scorePercent)}">
+									{current.submission.filter((l) => l.correct).length} of {current.solution.length} correct
+								</span>
+							</header>
+							{#if current.submission.length === 0}
+								<p class="empty">You didn’t place any pieces here.</p>
+							{/if}
+							<ol>
+								{#each current.submission as line}
+									<li class:right={line.correct} class:wrong={!line.correct}>
+										<code style:padding-left="{line.indent * 24}px">{line.code}</code>
+										<span class="sr">{line.correct ? 'correct' : 'wrong'}</span>
+										<span aria-hidden="true" class="mark">{line.correct ? '✓' : '✕'}</span>
+									</li>
+								{/each}
+							</ol>
+						</section>
+						<section class="panel" aria-labelledby="sol">
+							<header>
+								<h3 id="sol">Solution</h3>
+								<span class="pill ok">Correct answer</span>
+							</header>
+							<ol>
+								{#each current.solution as line}
+									<li><code style:padding-left="{line.indent * 24}px">{line.code}</code></li>
+								{/each}
+							</ol>
+							{#if current.redHerrings.length}
+								<h4>Red herrings (not part of the solution)</h4>
+								<ol>
+									{#each current.redHerrings as line}
+										<li class="herring"><code style:padding-left="{line.indent * 24}px">{line.code}</code></li>
+									{/each}
+								</ol>
+							{/if}
+						</section>
+					</div>
+			{/if}
 		{/if}
 
 		<div class="finish">
