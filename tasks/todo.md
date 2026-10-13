@@ -128,7 +128,7 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 - [x] **28. Student UI: `TemplatePuzzle.svelte`**
   - Acceptance: per spec UI section: inline gaps, pool chips, reusable copy-on-drag, tap/keyboard path, reorder inside a gap, restore from saved state, autosave via existing `Autosaver`; exam and review screens switch on `kind`.
   - Verify: component/unit tests for state helpers (add/remove/move, reusable copies, serialisation to `{gaps}`); `npm run check`; manual run at 1280, 820 and 390 px.
-- [ ] **29. Teacher editor for templates**
+- [x] **29. Teacher editor for templates**
   - Acceptance: kind switch, template editor with Mark-as-piece and Any-order buttons, live preview + errors, piece list with reusable checkboxes, red herrings, student preview; results and attempt detail render template puzzles.
   - Verify: unit tests for the wrap/toggle helpers; manual: build the JPA and the SQL example from the spec, publish, take as a student.
 

@@ -4,10 +4,11 @@
 	import { api, ApiError } from '#lib/api.js';
 	import { parsePastedCode } from '#lib/code_paste.js';
 	import { shuffled } from '#lib/shuffle.js';
-	import type { ClassView, ExamView, PuzzleView } from '#lib/types.js';
+	import type { ClassView, ExamView, PuzzleKind, PuzzleView } from '#lib/types.js';
 	import Button from './Button.svelte';
 	import PageHeader from './PageHeader.svelte';
 	import Section from './Section.svelte';
+	import TemplateEditor from './TemplateEditor.svelte';
 	import TextArea from './TextArea.svelte';
 	import TextField from './TextField.svelte';
 
@@ -31,17 +32,21 @@
 	// The editor owns its state; it starts from the puzzle it was opened with.
 	let title = $state(untrack(() => puzzle?.title ?? ''));
 	let description = $state(untrack(() => puzzle?.description ?? ''));
+	let kind = $state<PuzzleKind>(untrack(() => puzzle?.kind ?? 'lines'));
 	let solution = $state<Row[]>(
-		untrack(() => (puzzle ? toRows(puzzle.solution) : [{ key: nextKey++, code: '', indent: 0 }]))
+		untrack(() => (puzzle?.kind === 'lines' ? toRows(puzzle.solution) : [{ key: nextKey++, code: '', indent: 0 }]))
 	);
-	let herrings = $state<Row[]>(untrack(() => toRows(puzzle?.redHerrings ?? [])));
+	let herrings = $state<Row[]>(untrack(() => (puzzle?.kind === 'lines' ? toRows(puzzle.redHerrings) : [])));
+	let template = $state(untrack(() => (puzzle?.kind === 'template' ? puzzle.template : '')));
+	let herringText = $state(untrack(() => (puzzle?.kind === 'template' ? puzzle.redHerrings.join('\n') : '')));
+	let reusable = $state<string[]>(untrack(() => (puzzle?.kind === 'template' ? puzzle.reusable : [])));
 
 	let saving = $state(false);
 	let saved = $state(false);
 	let error = $state<string | null>(null);
 	let seed = $state(1);
 
-	const snapshot = () => JSON.stringify([title, description, solution, herrings]);
+	const snapshot = () => JSON.stringify([kind, title, description, solution, herrings, template, herringText, reusable]);
 	let baseline = $state(untrack(snapshot));
 	const dirty = $derived(snapshot() !== baseline);
 
@@ -124,16 +129,29 @@
 		}
 		saving = true;
 		try {
-			const body = {
-				title,
-				description,
-				solution: filled.map((r) => ({ id: r.id, code: r.code, indent: r.indent })),
-				redHerrings: filledHerrings.map((r) => ({ id: r.id, code: r.code, indent: r.indent }))
-			};
+			const body =
+				kind === 'template'
+					? {
+							kind,
+							title,
+							description,
+							template,
+							redHerrings: herringText.split('\n').filter((l) => l.trim() !== ''),
+							reusable
+						}
+					: {
+							kind,
+							title,
+							description,
+							solution: filled.map((r) => ({ id: r.id, code: r.code, indent: r.indent })),
+							redHerrings: filledHerrings.map((r) => ({ id: r.id, code: r.code, indent: r.indent }))
+						};
 			if (puzzle) {
 				const res = await api<{ puzzle: PuzzleView }>(`/teacher/puzzles/${puzzle.id}`, { method: 'PUT', body });
-				solution = toRows(res.puzzle.solution);
-				herrings = toRows(res.puzzle.redHerrings);
+				if (res.puzzle.kind === 'lines') {
+					solution = toRows(res.puzzle.solution);
+					herrings = toRows(res.puzzle.redHerrings);
+				}
 				baseline = snapshot();
 				saved = true;
 				setTimeout(() => (saved = false), 2500);
@@ -203,13 +221,21 @@
 	</ol>
 {/snippet}
 
-<div class="layout">
+<div class="layout" class:single={kind === 'template'}>
 	<div class="main">
+		<Section title="Kind of puzzle" subtitle="Line puzzles reorder whole lines. Code templates have fixed code with gaps that students fill with pieces, for any language.">
+			<div class="kinds" role="radiogroup" aria-label="Kind of puzzle">
+				<button type="button" role="radio" aria-checked={kind === 'lines'} class:on={kind === 'lines'} onclick={() => (kind = 'lines')}>Line puzzle</button>
+				<button type="button" role="radio" aria-checked={kind === 'template'} class:on={kind === 'template'} onclick={() => (kind = 'template')}>Code template</button>
+			</div>
+		</Section>
+
 		<Section title="Task">
 			<TextField label="Puzzle title" bind:value={title} placeholder="Sum of 1 to N with a for loop" />
 			<TextArea label="Task description" bind:value={description} placeholder="Read n and print the sum of all numbers from 1 to n." />
 		</Section>
 
+		{#if kind === 'lines'}
 		<Section
 			title="Solution (correct order)"
 			subtitle="Type each line and set its indentation. Students must rebuild exactly this order. Paste a whole program to split it into lines."
@@ -223,8 +249,10 @@
 			{@render rowList(herrings, true)}
 			<div><Button variant="secondary" onclick={() => addRow(herrings, herrings.length - 1)}>+ Add red herring</Button></div>
 		</Section>
+		{/if}
 	</div>
 
+	{#if kind === 'lines'}
 	<aside>
 		<Section title="Student preview" subtitle="Pieces are shuffled for each student. Red herrings look identical.">
 			<ul class="preview" aria-label="Preview of the shuffled pieces">
@@ -245,7 +273,12 @@
 			</p>
 		</Section>
 	</aside>
+	{/if}
 </div>
+
+{#if kind === 'template'}
+	<TemplateEditor bind:template bind:herringText bind:reusable />
+{/if}
 
 <style>
 	.layout {
@@ -253,6 +286,28 @@
 		grid-template-columns: minmax(0, 1fr) 380px;
 		gap: 24px;
 		align-items: start;
+	}
+	.layout.single {
+		grid-template-columns: 1fr;
+		margin-bottom: 24px;
+	}
+	.kinds {
+		display: inline-flex;
+		gap: 8px;
+	}
+	.kinds button {
+		padding: 8px 16px;
+		border: 1px solid var(--border-strong);
+		border-radius: 100px;
+		background: var(--surface);
+		color: var(--text-muted);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.kinds button.on {
+		border-color: var(--primary);
+		background: var(--primary);
+		color: var(--text-inverse);
 	}
 	.main,
 	aside {

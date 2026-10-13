@@ -284,7 +284,11 @@
 							<div class="grow">
 								<strong>{p.title}</strong>
 								<span class="muted">
-									{p.solutionLineCount} lines · {p.redHerringCount === 0 ? 'no red herrings' : `${p.redHerringCount} red ${p.redHerringCount === 1 ? 'herring' : 'herrings'}`}
+									{#if p.kind === 'template'}
+										Code template · {p.pieceCount} pieces in {p.gapCount} {p.gapCount === 1 ? 'gap' : 'gaps'}
+									{:else}
+										{p.solutionLineCount} lines · {p.redHerringCount === 0 ? 'no red herrings' : `${p.redHerringCount} red ${p.redHerringCount === 1 ? 'herring' : 'herrings'}`}
+									{/if}
 								</span>
 							</div>
 							<button class="icon" aria-label="Move up" disabled={i === 0} onclick={() => movePuzzle(i, -1)}>▲</button>
