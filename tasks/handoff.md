@@ -1,6 +1,6 @@
 # Handoff: where we stopped
 
-Last updated after task 19 (tasks 1–19 merged into `main`, working tree clean).
+Last updated after task 30. Tasks 1–19 are on `main`; Phase 9 (template puzzles, tasks 24–30) is implemented on branch `feature/template-puzzles` (not merged): backend 222 tests, teacher 25, student 35. Import format: `docs/puzzle-import.md`; the `create-puzzle-json` skill and its validator support template puzzles. Still open from Phase 9: Michael's manual check (build a JPA and an SQL puzzle, take them as a student, check results and export).
 
 ## Done
 Backend (Hono + MySQL/MariaDB): teacher passwordless login, classes with owner/member teachers, exams, puzzles, student join/lookup/start/autosave/submit, scoring, timeout settling (lazy + 30 s sweeper), review after exam over. 141 tests (results routes: `GET /exams/:id/results`, `GET /exams/:id/export`, `GET|DELETE /attempts/:id`; class cards carry `studentCount`).

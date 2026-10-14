@@ -135,6 +135,6 @@ All on branch `feature/template-puzzles`, one atomic commit (or a few) per task.
 ### Checkpoint G (after 29)
 - [ ] Michael builds a JPA and an SQL puzzle, takes them as a student, checks results and export.
 
-- [ ] **30. Docs and skill**
+- [x] **30. Docs and skill**
   - Acceptance: `docs/puzzle-import.md` describes both shapes; `.claude/skills/create-puzzle-json` (SKILL.md, example.json, validate.mjs) supports template puzzles; `tasks/handoff.md` updated.
   - Verify: `validate.mjs` accepts the example, which imports successfully.
