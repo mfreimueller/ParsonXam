@@ -1,7 +1,8 @@
 import type { SQLInstance } from '../db/sql.js';
 import { getAttempt, type AttemptRow } from './attempts.js';
 import { puzzlePercent, round2, scoreExam } from './scoring.js';
-import { parseState } from './student_view.js';
+import { parseGaps, parseState } from './student_view.js';
+import { evaluateTemplate, loadTileTexts } from './template_result.js';
 
 export type SubmitReason = 'manual' | 'timeout';
 
@@ -35,8 +36,10 @@ export async function finaliseAttempt(
     if (!row || row.submittedAt) return;
 
     // Only the puzzles this student was given count, however many the exam has.
-    const puzzles = await tx<{ id: number }[]>`
-      SELECT puzzle_id AS id FROM attempt_puzzles WHERE attempt_id = ${attemptId} ORDER BY puzzle_id`;
+    const puzzles = await tx<{ id: number; kind: 'lines' | 'template'; template: string | null }[]>`
+      SELECT ap.puzzle_id AS id, p.kind, p.template FROM attempt_puzzles ap JOIN puzzles p ON p.id = ap.puzzle_id
+      WHERE ap.attempt_id = ${attemptId} ORDER BY ap.puzzle_id`;
+    const tiles = await loadTileTexts(tx, puzzles.filter((p) => p.kind === 'template').map((p) => p.id));
     const lines = await tx<LineRow[]>`
       SELECT l.puzzle_id AS puzzleId, l.public_id AS publicId, l.solution_position AS solutionPosition,
              l.code, l.indent
@@ -45,18 +48,24 @@ export async function finaliseAttempt(
     const saved = await tx<{ puzzleId: number; state: unknown }[]>`
       SELECT puzzle_id AS puzzleId, state FROM attempt_puzzles WHERE attempt_id = ${attemptId}
     `;
-    const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, parseState(s.state)]));
+    const stateByPuzzle = new Map(saved.map((s) => [s.puzzleId, s.state]));
     const studentsIndent = Boolean(row.studentsIndent);
 
     const scores: number[] = [];
     for (const p of puzzles) {
+      if (p.kind === 'template') {
+        const exact = evaluateTemplate(p.template ?? '', tiles.get(p.id) ?? new Map(), parseGaps(stateByPuzzle.get(p.id))).percent;
+        scores.push(exact);
+        await tx`UPDATE attempt_puzzles SET score_percent = ${round2(exact)} WHERE attempt_id = ${attemptId} AND puzzle_id = ${p.id}`;
+        continue;
+      }
       const mine = lines.filter((l) => l.puzzleId === p.id);
       const byId = new Map(mine.map((l) => [l.publicId, l]));
       const solution = mine
         .filter((l) => l.solutionPosition !== null)
         .sort((a, b) => a.solutionPosition! - b.solutionPosition!)
         .map((l) => ({ code: l.code, indent: Number(l.indent) }));
-      const placed = (stateByPuzzle.get(p.id) ?? []).flatMap((s) => {
+      const placed = parseState(stateByPuzzle.get(p.id)).flatMap((s) => {
         const line = byId.get(s.pieceId);
         if (!line) return [];
         // With pre-set indentation the piece's own indent counts, whatever the client sent.

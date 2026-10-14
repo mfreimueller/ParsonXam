@@ -4,13 +4,60 @@
       "title": "Sum of 1 to N",
       "description": "Read n and print 1 + 2 + ... + n.",
       "solution": [
-        { "code": "n = int(input())", "indent": 0 },
-        { "code": "total = 0", "indent": 0 },
-        { "code": "for i in range(1, n + 1):", "indent": 0 },
-        { "code": "total += i", "indent": 1 },
-        { "code": "print(total)", "indent": 0 }
+        {
+          "code": "n = int(input())",
+          "indent": 0
+        },
+        {
+          "code": "total = 0",
+          "indent": 0
+        },
+        {
+          "code": "for i in range(1, n + 1):",
+          "indent": 0
+        },
+        {
+          "code": "total += i",
+          "indent": 1
+        },
+        {
+          "code": "print(total)",
+          "indent": 0
+        }
       ],
-      "redHerrings": [{ "code": "for i in range(n):", "indent": 0 }]
+      "redHerrings": [
+        {
+          "code": "for i in range(n):",
+          "indent": 0
+        }
+      ]
+    },
+    {
+      "kind": "template",
+      "title": "Employees above their department average",
+      "description": "Complete the query: list name and salary of every employee who earns more than the average salary of their own department.",
+      "template": "{{SELECT}} {{e.name}}, {{e.salary}}\n{{FROM}} {{employees e}}\n{{WHERE}} {{e.salary > (}}\n    {{SELECT}} {{AVG(x.salary)}}\n    {{FROM}} {{employees x}}\n    {{WHERE}} {{x.dept_id = e.dept_id}}\n{{)}}",
+      "redHerrings": [
+        "GROUP BY",
+        "HAVING"
+      ],
+      "reusable": [
+        "SELECT",
+        "FROM",
+        "WHERE"
+      ]
+    },
+    {
+      "kind": "template",
+      "title": "JPA entity Order",
+      "description": "Complete the mapping: Order is an entity in table orders with a generated id, a mandatory customer and a list of items. note is a plain field.",
+      "template": "{{~@Entity}} {{@Table(name = \"orders\")}}\npublic class Order {\n    {{~@Id}} {{@GeneratedValue(strategy = GenerationType.IDENTITY)}}\n    private Long id;\n\n    {{@Column(nullable = false)}}\n    private String customer;\n\n    {{}}\n    private String note;\n\n    {{@OneToMany(mappedBy = \"order\")}}\n    private List<Item> items;\n}",
+      "redHerrings": [
+        "@Embedded",
+        "@ManyToOne",
+        "@Transient"
+      ],
+      "reusable": []
     }
   ]
 }

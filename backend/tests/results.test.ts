@@ -138,6 +138,7 @@ describe('export', () => {
     });
     expect(file.exam.puzzles[0]).toEqual({
       id: exam.puzzleIds[0],
+      kind: 'lines',
       title: SUM_PUZZLE.title,
       solution: SUM_PUZZLE.solution,
       redHerrings: ['for i in range(n):'],

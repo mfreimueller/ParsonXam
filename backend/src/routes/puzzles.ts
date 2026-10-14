@@ -7,7 +7,8 @@ import { assertStructureEditable } from '../lib/attempts.js';
 import { requireExamAccess } from '../lib/exams.js';
 import { parseJson } from '../lib/http.js';
 import { parseId } from '../lib/membership.js';
-import { getPuzzle, listPuzzles, replaceLines, requirePuzzleAccess } from '../lib/puzzles.js';
+import { clearTemplate, getPuzzle, listPuzzles, replaceLines, replaceTemplate, requirePuzzleAccess } from '../lib/puzzles.js';
+import { buildPool, parseTemplate } from '../lib/template.js';
 import { teacherAuth, type TeacherVariables } from '../middleware/teacher_auth.js';
 
 const line = z.object({
@@ -28,19 +29,58 @@ const line = z.object({
   indent: z.number().int().min(0).max(6).default(0),
 });
 
+const common = {
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(2000).default(''),
+};
+
+const linesBody = z.object({
+  kind: z.literal('lines'),
+  ...common,
+  solution: z.array(line).max(30),
+  redHerrings: z.array(line).max(10).default([]),
+});
+
+// The size limits live in the parser, which reports them with line numbers.
+const templateBody = z.object({
+  kind: z.literal('template'),
+  ...common,
+  template: z.string().max(20000),
+  redHerrings: z.array(z.string().max(1000)).max(100).default([]),
+  reusable: z.array(z.string().max(1000)).max(200).default([]),
+});
+
+// A body without `kind` is a line puzzle, as before templates existed.
 const bodySchema = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().max(2000).default(''),
-    solution: z.array(line).max(30),
-    redHerrings: z.array(line).max(10).default([]),
-  })
+  .preprocess(
+    (v) => (v && typeof v === 'object' && !('kind' in v) ? { ...v, kind: 'lines' } : v),
+    z.discriminatedUnion('kind', [linesBody, templateBody])
+  )
   .superRefine((v, ctx) => {
-    const ids = [...v.solution, ...v.redHerrings].map((l) => l.id).filter(Boolean);
-    if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', message: 'line ids must be unique' });
+    if (v.kind === 'lines') {
+      const ids = [...v.solution, ...v.redHerrings].map((l) => l.id).filter(Boolean);
+      if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', message: 'line ids must be unique' });
+      return;
+    }
+    const parsed = parseTemplate(v.template);
+    for (const e of parsed.errors) ctx.addIssue({ code: 'custom', path: ['template'], message: `line ${e.line}: ${e.message}` });
+    for (const message of buildPool(parsed, v.redHerrings, v.reusable).errors) {
+      ctx.addIssue({ code: 'custom', path: ['redHerrings'], message });
+    }
   });
 
 type PuzzleInput = z.infer<typeof bodySchema>;
+
+// Writes the content of a puzzle in the shape of its kind and removes what belongs to the other kind.
+async function saveContent(tx: TransactionSQL, puzzleId: number, body: PuzzleInput): Promise<void> {
+  if (body.kind === 'lines') {
+    await clearTemplate(tx, puzzleId);
+    await replaceLines(tx, puzzleId, body.solution, body.redHerrings);
+  } else {
+    const { tiles } = buildPool(parseTemplate(body.template), body.redHerrings, body.reusable);
+    await replaceTemplate(tx, puzzleId, body.template, tiles);
+  }
+}
 
 // Appends a puzzle at the end of the exam.
 async function insertPuzzle(tx: TransactionSQL, examId: number, body: PuzzleInput): Promise<number> {
@@ -49,11 +89,11 @@ async function insertPuzzle(tx: TransactionSQL, examId: number, body: PuzzleInpu
     INSERT INTO puzzles (exam_id, position, title, description)
     VALUES (${examId}, ${next[0]!.n}, ${body.title}, ${body.description})
   `;
-  await replaceLines(tx, res.lastInsertRowid, body.solution, body.redHerrings);
+  await saveContent(tx, res.lastInsertRowid, body);
   return res.lastInsertRowid;
 }
 
-// Import file: { "puzzles": [ { title, description, solution, redHerrings } ] }, see docs/puzzle-import.md.
+// Import file: { "puzzles": [ { title, description, solution, redHerrings } or { kind: "template", ... } ] }, see docs/puzzle-import.md.
 const importSchema = z.object({ puzzles: z.array(bodySchema).min(1).max(50) });
 
 export const examPuzzles = new Hono<{ Variables: TeacherVariables }>();
@@ -129,7 +169,7 @@ puzzles.put('/:id', async (c) => {
   const body = await parseJson(c, bodySchema);
   await db.begin(async (tx) => {
     await tx`UPDATE puzzles SET title = ${body.title}, description = ${body.description} WHERE id = ${id}`;
-    await replaceLines(tx, id, body.solution, body.redHerrings);
+    await saveContent(tx, id, body);
   });
   return c.json({ puzzle: await getPuzzle(db, id) });
 });

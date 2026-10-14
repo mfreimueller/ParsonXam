@@ -4,6 +4,7 @@
 	import Badge from '#lib/components/Badge.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TemplateReview from '#lib/components/TemplateReview.svelte';
 	import { formatPercent, scoreTone } from '#lib/score.js';
 	import { formatDateTime, formatDuration } from '#lib/time.js';
 	import type { ReviewLine } from '#lib/types.js';
@@ -26,7 +27,7 @@
 	const key = (l: ReviewLine) => `${l.indent}:${l.code}`;
 	/** Lines the student placed that do not belong, and solution lines they left out. */
 	const problems = $derived.by(() => {
-		if (!puzzle) return null;
+		if (!puzzle || puzzle.kind !== 'lines') return null;
 		const wanted = new Map<string, number>();
 		for (const l of puzzle.solution) wanted.set(key(l), (wanted.get(key(l)) ?? 0) + 1);
 		const extra: ReviewLine[] = [];
@@ -48,7 +49,7 @@
 			parts.push(`${problems.missing.length === 1 ? 'The missing line is' : 'Missing lines:'} ${problems.missing.map((l) => l.code.trim()).join(', ')}.`);
 		return parts.join(' ') || null;
 	});
-	const correct = $derived(puzzle ? puzzle.submission.filter((l) => l.correct).length : 0);
+	const correct = $derived(puzzle?.kind === 'lines' ? puzzle.submission.filter((l) => l.correct).length : 0);
 
 	let confirmDelete = $state(false);
 	let busy = $state(false);
@@ -115,43 +116,54 @@
 
 	<h2>Puzzle {picked + 1}: {puzzle.title}</h2>
 
-	<div class="panels">
-		<section>
+	{#if puzzle.kind === 'template'}
+		<section class="template">
 			<header>
-				<h3>Student submission</h3>
-				<Badge tone={scoreTone(puzzle.scorePercent) === 'good' ? 'success' : 'warn'}>
-					{correct} of {puzzle.solution.length} lines correct
-				</Badge>
+				<h3>Student answer with the solution</h3>
+				<Badge tone={scoreTone(puzzle.scorePercent) === 'good' ? 'success' : 'warn'}>{formatPercent(puzzle.scorePercent)}</Badge>
 			</header>
-			{#if puzzle.submission.length === 0}
-				<p class="muted">Nothing was placed for this puzzle.</p>
-			{:else}
+			<TemplateReview lines={puzzle.lines} redHerrings={puzzle.redHerrings} />
+		</section>
+	{:else}
+		<div class="panels">
+			<section>
+				<header>
+					<h3>Student submission</h3>
+					<Badge tone={scoreTone(puzzle.scorePercent) === 'good' ? 'success' : 'warn'}>
+						{correct} of {puzzle.solution.length} lines correct
+					</Badge>
+				</header>
+				{#if puzzle.submission.length === 0}
+					<p class="muted">Nothing was placed for this puzzle.</p>
+				{:else}
+					<ul>
+						{#each puzzle.submission as l, i (i)}
+							<li class={l.correct ? 'right' : 'wrong'}>
+								<span class="grip" aria-hidden="true">⠿</span>
+								<code style="padding-left: {l.indent * 28}px">{l.code}</code>
+								<span class="sr">{l.correct ? 'Correct' : 'Wrong'}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+			<section>
+				<header>
+					<h3>Solution</h3>
+					<Badge tone="success">Correct solution</Badge>
+				</header>
 				<ul>
-					{#each puzzle.submission as l, i (i)}
-						<li class={l.correct ? 'right' : 'wrong'}>
+					{#each puzzle.solution as l, i (i)}
+						<li>
 							<span class="grip" aria-hidden="true">⠿</span>
 							<code style="padding-left: {l.indent * 28}px">{l.code}</code>
-							<span class="sr">{l.correct ? 'Correct' : 'Wrong'}</span>
 						</li>
 					{/each}
 				</ul>
-			{/if}
-		</section>
-		<section>
-			<header>
-				<h3>Solution</h3>
-				<Badge tone="success">Correct solution</Badge>
-			</header>
-			<ul>
-				{#each puzzle.solution as l, i (i)}
-					<li>
-						<span class="grip" aria-hidden="true">⠿</span>
-						<code style="padding-left: {l.indent * 28}px">{l.code}</code>
-					</li>
-				{/each}
-			</ul>
-		</section>
-	</div>
+			</section>
+		</div>
+
+	{/if}
 
 	{#if note}<p class="note">{note}</p>{/if}
 {/if}
@@ -196,6 +208,10 @@
 		margin-bottom: 20px;
 		font-size: 18px;
 		font-weight: 600;
+	}
+	.template {
+		display: flex;
+		flex-direction: column;
 	}
 	.panels {
 		display: grid;

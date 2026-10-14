@@ -39,13 +39,17 @@ export interface ExamView {
 	createdBy: { id: number; displayName: string } | null;
 }
 
-export interface PuzzleSummary {
+export type PuzzleKind = 'lines' | 'template';
+
+interface SummaryBase {
 	id: number;
 	position: number;
 	title: string;
-	solutionLineCount: number;
-	redHerringCount: number;
 }
+
+export type PuzzleSummary =
+	| (SummaryBase & { kind: 'lines'; solutionLineCount: number; redHerringCount: number })
+	| (SummaryBase & { kind: 'template'; pieceCount: number; gapCount: number });
 
 export interface LineView {
 	id: string;
@@ -53,15 +57,29 @@ export interface LineView {
 	indent: number;
 }
 
-export interface PuzzleView {
+interface PuzzleBase {
 	id: number;
 	examId: number;
 	position: number;
 	title: string;
 	description: string;
+}
+
+export interface LinesPuzzleView extends PuzzleBase {
+	kind: 'lines';
 	solution: LineView[];
 	redHerrings: LineView[];
 }
+
+/** `template` is the teacher's source with {{ }} markers. */
+export interface TemplatePuzzleView extends PuzzleBase {
+	kind: 'template';
+	template: string;
+	redHerrings: string[];
+	reusable: string[];
+}
+
+export type PuzzleView = LinesPuzzleView | TemplatePuzzleView;
 
 export type AttemptStatus = 'joined' | 'in_progress' | 'submitted';
 export type SubmitReason = 'manual' | 'timeout';
@@ -79,7 +97,7 @@ export interface ResultRow {
 }
 
 export interface ResultsView {
-	puzzles: { id: number; title: string }[];
+	puzzles: { id: number; kind: PuzzleKind; title: string }[];
 	stats: {
 		joined: number;
 		inProgress: number;
@@ -97,6 +115,32 @@ export interface ReviewLine {
 	indent: number;
 }
 
+export type ReviewSegment =
+	| { text: string }
+	| { gap: number; expected: string[]; submitted: { text: string; correct: boolean }[]; anyOrder: boolean };
+
+export type AttemptPuzzle =
+	| {
+			id: number;
+			kind: 'lines';
+			title: string;
+			description: string;
+			scorePercent: number;
+			submission: (ReviewLine & { correct: boolean })[];
+			solution: ReviewLine[];
+			redHerrings: ReviewLine[];
+	  }
+	| {
+			id: number;
+			kind: 'template';
+			title: string;
+			description: string;
+			scorePercent: number;
+			lines: ReviewSegment[][];
+			redHerrings: string[];
+			reusable: string[];
+	  };
+
 export interface AttemptDetail {
 	id: number;
 	examId: number;
@@ -106,13 +150,5 @@ export interface AttemptDetail {
 	submittedAt: string | null;
 	submitReason: SubmitReason | null;
 	scorePercent: number | null;
-	puzzles: {
-		id: number;
-		title: string;
-		description: string;
-		scorePercent: number;
-		submission: (ReviewLine & { correct: boolean })[];
-		solution: ReviewLine[];
-		redHerrings: ReviewLine[];
-	}[];
+	puzzles: AttemptPuzzle[];
 }

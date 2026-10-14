@@ -102,6 +102,16 @@ describe('Autosaver', () => {
 		expect(onFatal).toHaveBeenCalledWith(err);
 	});
 
+	it('carries any kind of state, such as gaps of a template puzzle', async () => {
+		const send = vi.fn().mockResolvedValue(undefined);
+		const saver = new Autosaver<{ gaps: Record<string, string[]> }>({ send, isFatal: () => false, onFatal: vi.fn(), onStatus: vi.fn() });
+		saver.queue(3, { gaps: { '0': ['a'] } });
+		saver.queue(3, { gaps: { '0': ['a', 'b'], '2': ['c'] } });
+		await saver.flush();
+		expect(send).toHaveBeenCalledTimes(1);
+		expect(send).toHaveBeenCalledWith(3, { gaps: { '0': ['a', 'b'], '2': ['c'] } });
+	});
+
 	it('does nothing after stop', async () => {
 		const send = vi.fn().mockResolvedValue(undefined);
 		const { saver } = setup(send);

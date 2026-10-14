@@ -5,13 +5,13 @@ import { raw } from '../db/sql.js';
 import { round2 } from './scoring.js';
 import { attemptPuzzleRows, buildReview } from './student_view.js';
 
-type PuzzleRow = { id: number; title: string; description: string };
+type PuzzleRow = { id: number; title: string; description: string; kind: 'lines' | 'template'; template: string | null };
 type AttemptStatus = 'joined' | 'in_progress' | 'submitted';
 
 const statusOf = (a: AttemptRow): AttemptStatus => (a.submittedAt ? 'submitted' : a.startedAt ? 'in_progress' : 'joined');
 
 async function examPuzzleRows(db: SQLInstance, examId: number): Promise<PuzzleRow[]> {
-  return db<PuzzleRow[]>`SELECT id, title, description FROM puzzles WHERE exam_id = ${examId} ORDER BY position`;
+  return db<PuzzleRow[]>`SELECT id, title, description, kind, template FROM puzzles WHERE exam_id = ${examId} ORDER BY position`;
 }
 
 async function attemptsOf(db: SQLInstance, examId: number): Promise<AttemptRow[]> {
@@ -51,7 +51,7 @@ export async function buildResults(db: SQLInstance, examId: number) {
 
   const done = rows.filter((r) => r.status === 'submitted').map((r) => r.scorePercent!);
   return {
-    puzzles: puzzles.map((p) => ({ id: p.id, title: p.title })),
+    puzzles: puzzles.map((p) => ({ id: p.id, kind: p.kind, title: p.title })),
     stats: {
       joined: rows.length,
       inProgress: rows.filter((r) => r.status === 'in_progress').length,
@@ -104,11 +104,25 @@ export async function buildExport(db: SQLInstance, exam: ExportExam, className: 
 
   const exportedPuzzles = [];
   for (const p of puzzles) {
+    if (p.kind === 'template') {
+      const pieces = await db<{ pieceText: string; reusable: number; herring: number }[]>`
+        SELECT text AS pieceText, reusable, herring FROM puzzle_pieces WHERE puzzle_id = ${p.id} ORDER BY id`;
+      exportedPuzzles.push({
+        id: p.id,
+        kind: 'template' as const,
+        title: p.title,
+        template: p.template ?? '',
+        redHerrings: pieces.filter((x) => x.herring).map((x) => x.pieceText),
+        reusable: [...new Set(pieces.filter((x) => x.reusable).map((x) => x.pieceText))],
+      });
+      continue;
+    }
     const lines = await db<{ code: string; indent: number; solutionPosition: number | null }[]>`
       SELECT code, indent, solution_position AS solutionPosition FROM puzzle_lines WHERE puzzle_id = ${p.id}
       ORDER BY solution_position IS NULL, solution_position, id`;
     exportedPuzzles.push({
       id: p.id,
+      kind: 'lines' as const,
       title: p.title,
       solution: lines.filter((l) => l.solutionPosition !== null).map((l) => ({ code: l.code, indent: Number(l.indent) })),
       redHerrings: lines.filter((l) => l.solutionPosition === null).map((l) => l.code),
@@ -124,7 +138,16 @@ export async function buildExport(db: SQLInstance, exam: ExportExam, className: 
       submittedAt: a.submittedAt!.toISOString(),
       submitReason: a.submitReason,
       scorePercent: Number(a.scorePercent),
-      puzzles: review.map((p) => ({ puzzleId: p.id, scorePercent: p.scorePercent, submitted: p.submission })),
+      puzzles: review.map((p) =>
+        p.kind === 'template'
+          ? {
+              puzzleId: p.id,
+              kind: 'template' as const,
+              scorePercent: p.scorePercent,
+              gaps: p.lines.flat().flatMap((seg) => ('gap' in seg ? [{ submitted: seg.submitted }] : [])),
+            }
+          : { puzzleId: p.id, kind: 'lines' as const, scorePercent: p.scorePercent, submitted: p.submission }
+      ),
     });
   }
 

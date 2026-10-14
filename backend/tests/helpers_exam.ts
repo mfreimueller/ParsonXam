@@ -105,3 +105,41 @@ export async function joinedStudent(code: string, name: string): Promise<TestStu
 export async function setExamTimes(db: SQLInstance, examId: number, opensAt: Date, closesAt: Date): Promise<void> {
   await db`UPDATE exams SET opens_at = ${opensAt}, closes_at = ${closesAt} WHERE id = ${examId}`;
 }
+
+/**
+ * Gaps: 0 any-order [@Id, @Gen], 1 empty, 2 [note], 3 [SELECT, id, SELECT] (SELECT reusable),
+ * 4 [)], 5 [)] (two non-reusable tiles). One red herring, "junk".
+ */
+export const TEMPLATE_PUZZLE = {
+  kind: 'template',
+  title: 'Entity',
+  description: 'Fill the gaps.',
+  template: [
+    'class A {',
+    '    {{~@Id}} {{@Gen}}',
+    '    private Long id;',
+    '    {{}}',
+    '    private String {{note}};',
+    '    {{SELECT}} {{id}} {{SELECT}}',
+    '    foo({{)}}',
+    '    bar({{)}}',
+    '}',
+  ].join('\n'),
+  redHerrings: ['junk'],
+  reusable: ['SELECT'],
+};
+
+/** A published exam with a line puzzle (SUM_PUZZLE) followed by TEMPLATE_PUZZLE. */
+export async function seedMixedExam(teacher: TestTeacher, classId: number, state: 'live' | 'over' = 'live'): Promise<SeededExam> {
+  const [opensAt, closesAt] = state === 'live' ? [hours(-1), hours(1)] : [hours(-2), hours(-1)];
+  const ex = await teacher.call('POST', `/api/teacher/classes/${classId}/exams`, { title: 'Mixed', opensAt, closesAt, timeLimitSeconds: 600 });
+  const exam = ((await ex.json()) as { exam: { id: number; accessCode: string } }).exam;
+  const puzzleIds: number[] = [];
+  for (const body of [SUM_PUZZLE, TEMPLATE_PUZZLE]) {
+    const res = await teacher.call('POST', `/api/teacher/exams/${exam.id}/puzzles`, body);
+    puzzleIds.push(((await res.json()) as { puzzle: { id: number } }).puzzle.id);
+  }
+  const res = await teacher.call('POST', `/api/teacher/exams/${exam.id}/publish`, {});
+  if (res.status !== 200) throw new Error(`publish failed: ${await res.text()}`);
+  return { examId: exam.id, code: exam.accessCode, puzzleIds };
+}

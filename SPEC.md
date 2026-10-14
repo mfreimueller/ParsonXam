@@ -249,6 +249,77 @@ Conventions: `snake_case` columns, `camelCase` in TypeScript and JSON, error cod
 - Scoring stays strict (exact position), as approved.
 - Multiple teachers per class with owner/member roles (Figma frames `T1` shared classes, `T2` teachers button, `T2b` teachers dialog).
 
+## Template puzzles (puzzle kind `template`)
+
+Added after v1. Makes ParsonXam language and technology agnostic: JPA mappings, REST controllers, SQL, config files. The existing line puzzles stay unchanged as kind `lines`; an exam may mix both kinds. Decisions (Michael, 2026-10-13): `{{…}}` markers, LCS scoring, "any order" gaps in v1, two puzzle kinds side by side.
+
+### Idea
+The teacher writes the real solution code and marks pieces inline. Everything outside markers is **fixed text** the student sees as given code. Marked pieces are removed and become drop **gaps**. A gap holds 0..n pieces; the student does not see how many. Pieces marked **reusable** appear once in the pool with an ∞ badge and can be placed any number of times (e.g. `SELECT`, `FROM`).
+
+```sql
+{{SELECT}} {{e.name}}
+{{FROM}} {{employees e}}
+{{WHERE}} {{e.salary > (}}
+    {{SELECT}} {{AVG(x.salary)}} {{FROM}} {{employees x}}
+    {{WHERE}} {{x.dept_id = e.dept_id}}
+{{)}}
+```
+with `reusable: ["SELECT", "FROM", "WHERE"]` and `redHerrings: ["GROUP BY", "HAVING"]`.
+
+```java
+@Entity
+public class Order {
+    {{~@Id}} {{@GeneratedValue(strategy = GenerationType.IDENTITY)}}
+    private Long id;
+    {{}}
+    private String note;
+}
+```
+
+### Template syntax
+- `{{text}}` marks one piece. The text is trimmed and must not be empty, except for the empty marker below.
+- A **gap** is a maximal run of markers on one line separated only by spaces or tabs. One line may contain several gaps separated by fixed text, or none (pure context line).
+- `{{}}` is an **empty gap**: the correct answer is to leave it empty (a decoy, so visible gaps do not give away where pieces go). It must stand alone, not in a run with other markers.
+- A gap whose **first** marker starts with `~` (`{{~@Id}} {{@GeneratedValue}}`) is an **any-order gap**: scored as a multiset. The `~` is not part of the piece text. `{{~}}` is invalid.
+- Escapes: `\{{` is a literal `{{` in fixed text; inside a marker `\}}` is a literal `}}` and a leading `\~` a literal `~`.
+- Leading whitespace is fixed text (tabs become 4 spaces). Trailing whitespace on a line is dropped.
+- Piece texts are compared after collapsing internal whitespace runs to one space.
+- Limits: template ≤ 6000 characters and ≤ 80 lines; ≤ 30 gaps; ≤ 60 solution pieces; piece text ≤ 200 characters; ≤ 15 red herrings. Errors name the 1-based line number.
+- `reusable`: list of piece texts (from the solution or the red herrings). Every entry must occur; duplicates are ignored. A reusable text is one pool tile however often it occurs in the solution. A non-reusable text that occurs twice (two `)`) gives two pool tiles.
+
+### Scoring (template puzzles)
+For each gap with expected pieces `E` and placed pieces `P` (compared by text):
+- `match` = length of the longest common subsequence of `E` and `P`; for an any-order gap the size of the multiset intersection.
+- `denom` = `max(|E|, |P|)`.
+
+Puzzle % = `Σ match / Σ denom × 100`. Missing pieces, extra pieces, red herrings and anything placed in an empty gap lower the score. A puzzle with nothing placed scores 0. The exam score is unchanged (mean of puzzle %). For the review, a placed piece is **correct** if it is part of the chosen LCS (any-order: part of the intersection); the LCS backtrack prefers the earliest match so the result is deterministic.
+
+### Data model
+```
+puzzles        + kind ENUM('lines','template') NOT NULL DEFAULT 'lines'
+               + template MEDIUMTEXT NULL          -- teacher source incl. markers; NULL for kind 'lines'
+puzzle_pieces(id, puzzle_id, public_id CHAR(12) UNIQUE, text VARCHAR(500),
+              reusable BOOL, herring BOOL)         -- one row per pool tile, kind 'template' only
+```
+`puzzle_lines` is used only by kind `lines`. Saving a template puzzle re-parses the template and rewrites its `puzzle_pieces` (ids may change; editing is locked once attempts exist). The solution is always derived from `template` at scoring time.
+
+`attempt_puzzles.state` for a template puzzle: `{"gaps": {"<gapIndex>": ["<pieceId>", ...]}}`. Gap indexes count gaps in reading order from 0.
+
+### API changes
+- Teacher `POST /exams/:id/puzzles` and `PUT /puzzles/:id` take a body discriminated by `kind` (default `lines`, current shape). Template body: `{kind:'template', title, description, template, redHerrings: string[], reusable: string[]}`. Changing the kind of an existing puzzle is allowed while the exam is not locked. `GET /puzzles/:id` returns the same fields plus `kind`. The puzzle list returns `kind` and, for templates, `pieceCount` / `gapCount` instead of line counts.
+- Import file: each puzzle entry is either the current shape or the template shape above.
+- Publish: a template puzzle needs ≥ 2 solution pieces.
+- Student `GET /attempt` (`in_progress`), template puzzle: `{id, kind:'template', title, description, lines: Segment[][], pieces:[{pieceId, text, reusable}], placed:{gaps}}`, where `Segment = {text} | {gap: number}`. Pieces are shuffled with the attempt seed as today. The `~` flag, which gaps are empty and which pieces are herrings are never sent. Line puzzles get `kind:'lines'` added.
+- Student autosave `PUT /puzzles/:id/state`: `{placed:[…]}` for line puzzles, `{gaps:{…}}` for template puzzles. Validation: known gap indexes, piece ids belong to the puzzle, a non-reusable piece at most once across all gaps, ≤ 20 pieces per gap.
+- Review (exam over) and teacher attempt detail, template puzzle: `lines` with each gap as `{gap, expected:[text], submitted:[{text, correct}], anyOrder}`, plus `redHerrings`, `reusable` and `scorePercent`.
+- Export: each puzzle gains `kind`; template puzzles carry `template`, `redHerrings`, `reusable` and their results carry `gaps: [{submitted:[{text, correct}]}]`. `version` stays 1 (additive; a missing `kind` means `lines`).
+- "Students set indentation" does not apply to template puzzles (indentation is fixed text).
+
+### UI
+- **Student** (`TemplatePuzzle.svelte`): the code is rendered monospace with gaps as inline drop zones (dashed, min width, grow with content, wrap on narrow screens); the pool sits below as chips. Dragging a reusable chip out of the pool places a copy and leaves the chip. Tap/keyboard path for tablets and accessibility: a gap is selected by tap/focus (highlighted), Enter or tap on a pool chip appends it to the selected gap, Enter or tap on a placed chip returns it (a reusable copy just disappears). Pieces within a gap can be reordered by drag and by Alt+←/→.
+- **Teacher** puzzle editor: choose "Line puzzle" or "Code template". Template mode: monospace editor with a "Mark as piece" button (wraps the selection in `{{ }}`) and an "Any order" button (toggles `~` on the gap's first marker), live preview of gaps and parse errors with line numbers, the derived piece list with a reusable checkbox per distinct text, red herrings (one per line, reusable checkbox), student preview. The parser is `backend/src/lib/template.ts`; the teacher app keeps a byte-identical copy at `teacher/src/lib/template.ts` (same approach as `tokens.css`), guarded by a backend test that compares the two files.
+- Results / attempt detail / student review render template puzzles as code with gaps showing submitted chips marked correct/wrong and the expected pieces next to them.
+
 ## Open Questions
 
 1. Should a member be able to see *who* created each exam? (The API returns `createdBy`; the exam table currently has no column for it.)

@@ -3,6 +3,7 @@ import { MIGRATION_0002_CLASSES_AND_MEMBERS } from './0002_classes_and_members.j
 import { MIGRATION_0003_EXAMS_AND_PUZZLES } from './0003_exams_and_puzzles.js';
 import { MIGRATION_0004_ATTEMPTS } from './0004_attempts.js';
 import { MIGRATION_0005_PUZZLES_PER_STUDENT } from './0005_puzzles_per_student.js';
+import { MIGRATION_0006_TEMPLATE_PUZZLES } from './0006_template_puzzles.js';
 
 export interface Migration {
   version: number;
@@ -16,4 +17,5 @@ export const MIGRATIONS: Migration[] = [
   MIGRATION_0003_EXAMS_AND_PUZZLES,
   MIGRATION_0004_ATTEMPTS,
   MIGRATION_0005_PUZZLES_PER_STUDENT,
+  MIGRATION_0006_TEMPLATE_PUZZLES,
 ];
